@@ -1,0 +1,90 @@
+version: "3.8"
+
+services:
+  kbs_db:
+    image: mariadb:11.4
+    container_name: kbs_db
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-file-per-table=1
+      - --skip-host-cache
+      - --skip-name-resolve
+    environment:
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass123}
+      MYSQL_DATABASE: ${DB_NAME:-kbs_db}
+      MYSQL_USER: ${DB_USER:-kbs_user}
+      MYSQL_PASSWORD: ${DB_PASS:-kbs_pass}
+    volumes:
+      - kbs_dbdata:/var/lib/mysql
+    networks:
+      - kombi_net
+
+  kbs_web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kbs_web
+    restart: unless-stopped
+    # Jangan blokir start walau DB belum healthy (biarkan app retry koneksi)
+    ports:
+      - "${APP_HTTP_PORT:-9201}:80"
+    environment:
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      WEB_DOCUMENT_ROOT: /app/src
+      php.display_errors: "${APP_DEBUG:-0}"
+      php.memory_limit: "${PHP_MEMORY_LIMIT:-256M}"
+      DB_HOST: ${DB_HOST:-kbs_db}
+      DB_NAME: ${DB_NAME:-kbs_db}
+      DB_USER: ${DB_USER:-kbs_user}
+      DB_PASS: ${DB_PASS:-kbs_pass}
+      DB_PORT: ${DB_PORT:-3306}
+      APP_DEBUG: ${APP_DEBUG:-0}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      BACKUP_STORAGE_PATH: ${BACKUP_STORAGE_PATH:-}
+      BACKUP_EXTERNAL_TYPE: ${BACKUP_EXTERNAL_TYPE:-}
+      BACKUP_EXTERNAL_PATH: ${BACKUP_EXTERNAL_PATH:-}
+      BACKUP_SMB_HOST: ${BACKUP_SMB_HOST:-}
+      BACKUP_SMB_SHARE: ${BACKUP_SMB_SHARE:-}
+      BACKUP_SMB_PATH: ${BACKUP_SMB_PATH:-}
+      BACKUP_SMB_USERNAME: ${BACKUP_SMB_USERNAME:-}
+      BACKUP_SMB_PASSWORD: ${BACKUP_SMB_PASSWORD:-}
+      BACKUP_SMB_WORKGROUP: ${BACKUP_SMB_WORKGROUP:-}
+      BACKUP_SMB_BINARY: ${BACKUP_SMB_BINARY:-/usr/bin/smbclient}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - ${APP_SOURCE_PATH:-.}:/app:Z
+      - ${APP_BACKUP_MIRROR_PATH:-./storage/backups_mirror}:/mnt/kombi_app_backup:Z
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    networks:
+      - kombi_net
+    depends_on:
+      - kbs_db
+
+  kbs_pma:
+    image: phpmyadmin:5
+    container_name: kbs_pma
+    restart: unless-stopped
+    ports:
+      - "${PHPMYADMIN_HTTP_PORT:-9202}:80"
+    environment:
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      PMA_HOST: ${DB_HOST:-kbs_db}
+      PMA_USER: ${DB_USER:-kbs_user}
+      PMA_PASSWORD: ${DB_PASS:-kbs_pass}
+      PMA_PORT: ${DB_PORT:-3306}
+      UPLOAD_LIMIT: ${PHPMYADMIN_UPLOAD_LIMIT:-128M}
+    networks:
+      - kombi_net
+
+volumes:
+  kbs_dbdata:
+
+networks:
+  kombi_net:
+    driver: bridge
+
