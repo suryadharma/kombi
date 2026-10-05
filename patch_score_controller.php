@@ -1,0 +1,236 @@
+"<?php
+// Patch untuk menambahkan fungsi perhitungan nilai akhir di ScoreController
+
+// 1. Tambahkan field di array studentResult
+$patch1 = <<<'PATCH'
+            $studentResult = [
+                'id' => $student['id'],
+                'nim' => $student['nim'],
+                'name' => $student['name'],
+                'status' => $student['status'] ?? null,
+                'angkatan' => $student['angkatan'] ?? null,
+                'stages' => [],
+                'letter_links' => ['pembimbing' => [], 'penguji' => []],
+                'final_score_avg' => null, // Tambahkan nilai akhir skripsi
+                'final_score_letter' => null // Tambahkan nilai huruf
+            ];
+PATCH;
+
+// 2. Tambahkan pemanggilan fungsi calculateFinalScoreForStudent
+$patch2 = <<<'PATCH'
+            }
+
+            // Hitung nilai akhir skripsi jika ada nilai pra-ujian dan ujian
+            $studentResult = $this->calculateFinalScoreForStudent($db, $studentResult);
+
+            $results[] = $studentResult;
+PATCH;
+
+// 3. Fungsi-fungsi baru yang perlu ditambahkan sebelum penutup class
+$patch3 = <<<'PATCH'
+    /**
+     * Hitung nilai akhir skripsi untuk mahasiswa
+     */
+    private function calculateFinalScoreForStudent(PDO $db, array $studentResult): array
+    {
+        $studentId = $studentResult['id'];
+        
+        // Ambil nilai pra-ujian (pembimbing)
+        $pembimbingScores = $this->getStageScores($db, $studentId, 'pra-ujian');
+        $pembimbingSummary = $this->summarizePembimbingScores($pembimbingScores);
+        
+        // Ambil nilai ujian (penguji)
+        $pengujiScores = $this->getStageScores($db, $studentId, 'ujian');
+        $pengujiSummary = $this->summarizePengujiScores($pengujiScores);
+        
+        // Hitung nilai komposit
+        $finalComposite = $this->calculateFinalCompositeScore($pembimbingSummary, $pengujiSummary);
+        
+        if (isset($finalComposite['value'])) {
+            $studentResult['final_score_avg'] = $finalComposite['value'];
+            $studentResult['final_score_letter'] = ScoreHelper::letterGrade($finalComposite['value']);
+            $studentResult['final_breakdown'] = [
+                'pembimbing' => $pembimbingSummary,
+                'penguji' => $pengujiSummary,
+                'composite' => $finalComposite
+            ];
+        }
+        
+        return $studentResult;
+    }
+
+    /**
+     * Ambil semua nilai untuk suatu tahap
+     */
+    private function getStageScores(PDO $db, int $studentId, string $stage): array
+    {
+        $query = "SELECT e.id, e.final_score, e.total_score, e.mode, e.evaluator_id, e.evaluator_role,
+                         u.name AS evaluator_name,
+                         a.role AS assignment_role
+                  FROM evaluations e
+                  JOIN users u ON e.evaluator_id = u.id
+                  LEFT JOIN assignments a ON a.student_id = e.student_id AND a.lecturer_id = e.evaluator_id
+                  WHERE e.student_id = :student_id AND e.stage = :stage
+                  ORDER BY e.updated_at DESC";
+        
+        $stmt = $db->prepare($query);
+        $stmt->execute([':student_id' => $studentId, ':stage' => $stage]);
+        $scores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $result = [];
+        foreach ($scores as $score) {
+            $result[] = [
+                'evaluator_id' => $score['evaluator_id'],
+                'evaluator_name' => $score['evaluator_name'],
+                'evaluator_role' => $score['evaluator_role'],
+                'assignment_role' => $score['assignment_role'],
+                'score' => ScoreHelper::normalize($score['final_score']),
+                'raw_score' => $score['total_score'],
+                'mode' => $score['mode']
+            ];
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Ringkasan nilai pembimbing (mirip dengan ReportController)
+     */
+    private function summarizePembimbingScores(array $scores): array
+    {
+        $stageWeights = $this->getStageWeightTotals();
+        $stageWeight = $stageWeights['pra-ujian'] ?? 0.0;
+        $ratio = Settings::getPembimbingRatio();
+        $roleWeights = [
+            'pembimbing_1' => $ratio[0] ?? 0,
+            'pembimbing_2' => $ratio[1] ?? 0
+        ];
+        $summary = [
+            'label' => 'Nilai Pembimbing',
+            'count' => 0,
+            'raw_sum' => 0.0,
+            'raw_average' => null,
+            'weighted' => null,
+            'weighted_normalized' => null,
+            'stage_weight' => $stageWeight
+        ];
+        
+        if (!empty($scores)) {
+            $total = 0.0;
+            foreach ($scores as $score) {
+                $total += $score['score'] ?? 0;
+            }
+            $summary['raw_average'] = $total / count($scores);
+            $summary['count'] = count($scores);
+        }
+        
+        return $summary;
+    }
+
+    /**
+     * Ringkasan nilai penguji (mirip dengan ReportController)
+     */
+    private function summarizePengujiScores(array $scores): array
+    {
+        $stageWeights = $this->getStageWeightTotals();
+        $stageWeight = $stageWeights['ujian'] ?? 0.0;
+        $summary = [
+            'label' => 'Nilai Penguji',
+            'count' => 0,
+            'raw_sum' => 0.0,
+            'raw_average' => null,
+            'aggregate' => null,
+            'aggregate_normalized' => null,
+            'method_label' => 'rata-rata',
+            'stage_weight' => $stageWeight
+        ];
+        
+        if (!empty($scores)) {
+            $total = 0.0;
+            foreach ($scores as $score) {
+                $total += $score['score'] ?? 0;
+            }
+            $summary['raw_average'] = $total / count($scores);
+            $summary['aggregate'] = $summary['raw_average'];
+            $summary['count'] = count($scores);
+        }
+        
+        return $summary;
+    }
+
+    /**
+     * Hitung nilai komposit akhir (mirip dengan ReportController)
+     */
+    private function calculateFinalCompositeScore(array $pembimbingSummary, array $pengujiSummary): array
+    {
+        $components = [];
+        $normalizedValues = [];
+
+        $pembAverage = null;
+        if (isset($pembimbingSummary['raw_average']) && $pembimbingSummary['raw_average'] !== null) {
+            $pembAverage = (float)$pembimbingSummary['raw_average'];
+        }
+        
+        $pengAverage = null;
+        if (isset($pengujiSummary['aggregate']) && $pengujiSummary['aggregate'] !== null) {
+            $pengAverage = (float)$pengujiSummary['aggregate'];
+        }
+
+        if ($pembAverage !== null && $pengAverage !== null) {
+            // Ambil bobot dari settings
+            $stageWeights = $this->getStageWeightTotals();
+            $pembWeight = $stageWeights['pra-ujian'] ?? 0.4; // default 40%
+            $pengWeight = $stageWeights['ujian'] ?? 0.6; // default 60%
+            
+            $finalScore = ($pembAverage * $pembWeight) + ($pengAverage * $pengWeight);
+            
+            return [
+                'value' => $finalScore,
+                'formula' => [
+                    'expression' => "({$pembAverage} × {$pembWeight}) + ({$pengAverage} × {$pengWeight})",
+                    'parts' => [
+                        ['text' => "Nilai Pembimbing: {$pembAverage}"],
+                        ['text' => "Nilai Penguji: {$pengAverage}"],
+                        ['text' => "Bobot Pembimbing: " . ($pembWeight * 100) . "%"],
+                        ['text' => "Bobot Penguji: " . ($pengWeight * 100) . "%"]
+                    ]
+                ]
+            ];
+        }
+        
+        return [];
+    }
+
+    /**
+     * Ambil total bobot tahap dari settings
+     */
+    private function getStageWeightTotals(): array
+    {
+        // Default weights
+        $defaultWeights = [
+            'sempro' => 0.0,
+            'semhas' => 0.0,
+            'pra-ujian' => 0.4, // 40%
+            'ujian' => 0.6      // 60%
+        ];
+        
+        // Coba ambil dari settings
+        try {
+            $pembimbingWeight = Settings::get('pembimbing_weight', 0.4);
+            $pengujiWeight = Settings::get('penguji_weight', 0.6);
+            
+            return [
+                'sempro' => 0.0,
+                'semhas' => 0.0,
+                'pra-ujian' => $pembimbingWeight,
+                'ujian' => $pengujiWeight
+            ];
+        } catch (Exception $e) {
+            return $defaultWeights;
+        }
+    }
+PATCH;
+
+echo "Patch siap diaplikasikan. Copy kode di atas ke ScoreController.php\n";
+?>
+"

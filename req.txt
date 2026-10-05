@@ -1,0 +1,168 @@
+Baik, berikut **PROMPT TEKNIS (siap copy–paste)** untuk diberikan ke AI coder (GPT-Codex / DeepSeek Coder). Prompt ini meminta **generator kode** membuat aplikasi lengkap sesuai alur yang sudah kita sepakati, dilengkapi **Docker Compose** yang dapat dijalankan via **Portainer**, dengan **app di port 8093** dan **phpMyAdmin di port 8094**.
+
+---
+
+# ✅ PROMPT TEKNIS — Aplikasi “Komisi Bimbingan Skripsi (KBS)” Prodi TIP
+
+> **Instruksi untuk AI Coder:**
+> Bangun aplikasi web **siap jalan** (buildable & runnable tanpa error) menggunakan **PHP 8.2 + MySQL 8 + Apache + Bootstrap 5** (boleh PHP native terstruktur MVC sederhana, bukan framework). Sertakan **Docker Compose** agar bisa di-deploy via **Portainer**. Gunakan **port 8093** untuk aplikasi dan **port 8094** untuk phpMyAdmin. Pastikan ekstensi **pdo_mysql** aktif.
+
+## 0) Ketentuan Umum
+
+* Bahasa antarmuka: **Indonesia (ID)**.
+* Arsitektur: **PHP Native terstruktur (MVC sederhana)** + **MySQL 8** + **Bootstrap 5** + **DataTables**.
+* Autentikasi: **Session-based** + **password hashed (bcrypt)** + **CSRF token**.
+* RBAC (Role Based Access Control) **wajib**.
+* Output **tanpa error**, struktur **rapi**, dan **portable** (mudah pindah hosting).
+* **Mahasiswa blind nilai** (tidak boleh melihat angka nilai).
+* Sertakan **seed data** minimal (1 superadmin, 1 kombi, 2 dosen pembimbing, 2 dosen penguji, 1 penguji eksternal, 3 mahasiswa contoh).
+* Sediakan **unit test ringan** untuk fungsi penting (auth & perhitungan masa studi) bila memungkinkan.
+
+## 1) Peran & Hak Akses
+
+1. **Superadmin**: CRUD seluruh entitas; atur role (angkat Kombi), atur kebijakan global (ambang cuti, skema bobot, prioritas bypass).
+2. **Kombi** *(mencakup sekretaris)*: verifikasi judul; tetapkan/ubah pembimbing & penguji; jadwal; **bypass nilai**; undangan penguji eksternal (NIP+Token atau akun sementara); lihat semua laporan.
+3. **Dosen Pembimbing**: input nilai **Sempro**, **Semhas**, **Pra-Ujian**; (opsional) log bimbingan; lihat hanya mahasiswa bimbingannya.
+4. **Dosen Penguji**: input nilai **Sempro**, **Semhas**, **Ujian Skripsi**; lihat nilai pembimbing **saat Panel Live** (hari H) dan sesudah finalisasi.
+5. **Mahasiswa**: **WAJIB** input **Judul** & dokumen pendukung; lihat **timeline & status tanpa nilai**.
+6. **Penguji Eksternal**: akses **Panel View – Live** dengan **NIP + Token sementara** (default) atau **username+password sementara** (opsional).
+
+> **Visibilitas nilai (time-gated):**
+>
+> * Pra-sidang: Penguji **tidak melihat** nilai pembimbing.
+> * **Hari H (Panel Live)**: Penguji **melihat ringkas nilai pembimbing** untuk tahap terkait.
+> * Pasca finalisasi: Panel (Kombi, Pembimbing, Penguji) melihat semua nilai. Mahasiswa tetap blind.
+
+## 2) Fitur Utama (harus ada)
+
+* **Pengajuan Judul** oleh mahasiswa (judul wajib, abstrak, kata kunci, lampiran).
+* **Verifikasi Judul** oleh Kombi (Terima/Tolak/Revisi).
+* **Penunjukan/Perubahan** Pembimbing (I/II) dan Penguji (internal/eksternal) dengan catatan alasan & jejak audit.
+* **Penilaian**:
+
+  * **Sempro** (Pembimbing & Penguji)
+  * **Semhas** (Pembimbing & Penguji)
+  * **Pra-Ujian** (Pembimbing)
+  * **Ujian Skripsi** (Penguji)
+    Masing-masing mendukung **mode A: komponen berbobot** dan **mode B: nilai akhir langsung**.
+* **Panel View – Live (Hari H)**: tampilan ringkas nilai pembimbing (terkait tahap) untuk penguji + form input nilai penguji.
+* **Bypass Nilai** oleh Kombi: input nilai akhir cepat (tanpa komponen) dengan **alasan wajib** dan **label sumber**.
+* **Masa Studi (berbasis semester)**: dihitung dari **semester masuk → semester yudisium** dikurangi **semester CUTI** (resmi).
+* **Timeline Mahasiswa**: pengajuan → verifikasi → penunjukan → sempro → semhas → pra-ujian → pendaftaran sidang → sidang → yudisium (tanpa angka nilai untuk mahasiswa).
+* **Beban & Distribusi Dosen**: beban pembimbing/penguji per semester, pemerataan, peringatan kuota lunak (mis. rekomendasi ≤ 8 bimbingan aktif/dosen).
+* **Laporan & Ekspor** (Excel/PDF): masa studi per angkatan, funnel progres, beban dosen, SLA entri, % bypass.
+
+## 3) Kebijakan & Aturan Bisnis
+
+* **Cuti**: hanya **CUTI resmi** (disetujui) yang **mengurangi** masa studi. **NON-AKTIF** tanpa SK dihitung berjalan (buat parameter kebijakan agar bisa diubah).
+* **Ambang cuti** (untuk ubah status semester berjalan): parameter global (default: sebelum akhir masa KRS).
+* **Agregasi nilai**:
+
+  * Pembimbing I : Pembimbing II = **60:40** (parametris).
+  * Penguji (≥1) = **rata-rata** (parametris).
+* **Konflik input** (komponen & final diisi bersamaan): sistem meminta pilih salah satu atau mensinkronkan (konversi bobot).
+* **Bypass**: selalu tercatat `sumber=bypass`, `alasan`, `dibuat_oleh`, `waktu`. Opsi: “menunggu konfirmasi dosen” X hari.
+* **Penguji eksternal**:
+
+  * **Default**: **NIP + Token sementara** (kedaluwarsa otomatis; per event).
+  * **Opsional**: akun sementara (username+password, auto-nonaktif H+3).
+  * Wajib centang **NDA ringkas** sebelum mengisi.
+
+## 4) Modul/Layar (UI/UX ringkas)
+
+1. **Login** (Superadmin, Kombi, Dosen, Mahasiswa) + halaman khusus **Panel Penguji Eksternal** (form NIP + Token).
+2. **Dashboard Kombi**
+
+   * Kartu ringkas: pengajuan judul menunggu, jadwal hari ini, **beban dosen** (+ peringatan kuota), SLA entri, % bypass.
+   * Grafik: distribusi masa studi per angkatan; funnel progres.
+   * Aksi cepat: tetapkan pembimbing/penguji; buat token penguji eksternal; bypass; ekspor.
+3. **Daftar Mahasiswa** (filter angkatan, tahap, pembimbing, penguji, status cuti).
+4. **Profil Mahasiswa**
+
+   * Mahasiswa: data diri, **Judul** (wajib), dokumen, **timeline tanpa nilai**.
+   * Internal (Kombi/Dosen): ringkas nilai (jika final), riwayat perubahan peran, status cuti, masa studi (semester).
+5. **Penunjukan/Perubahan Pembimbing & Penguji** (Kombi) + pembuatan token penguji eksternal / akun sementara.
+6. **Form Penilaian** (Pembimbing/Penguji)
+
+   * Mode **Komponen** (bobot bisa diatur global) atau **Nilai Akhir**.
+   * Tampil siapa yang mengisi, kapan.
+7. **Panel View – Live (Hari H)**
+
+   * Identitas mahasiswa, jadwal, ruang, ringkas nilai pembimbing (tahap terkait), form nilai penguji, notulen singkat, tombol **kunci panel**.
+8. **Bypass Nilai Sidang (Kombi)**: dilakukan melalui Penilaian Tahap Seminar & Sidang (Ujian) dengan catatan wajib dan label sumber.
+9. **Laporan**: masa studi, beban dosen, SLA, % bypass, ekspor Excel/PDF.
+
+## 5) API (jika perlu Ajax) — ringkasan endpoint
+
+* `/auth/login`, `/auth/logout`
+* `/students` (list/filter), `/students/{id}` (detail)
+* `/titles/submit` (mahasiswa), `/titles/verify` (kombi)
+* `/assignments/set` (kombi: pembimbing/penguji), `/assignments/history`
+* `/scores/submit` (dosen/kombi), `/scores/panel/finalize` (kombi)
+* `/panel/live/{event_id}` (render panel view – live)
+* `/external/invite` (buat token), `/external/login` (NIP+Token), `/external/score/submit`
+* `/reports/...` (masa studi, beban, SLA, eksport)
+
+## 6) Docker & Deploy (Portainer) — WAJIB
+
+* Buat **`docker-compose.yml`** versi `3.8` dengan layanan:
+
+  * **app**: `php:8.2-apache` + enable `pdo_mysql`; **ports**: `8093:80`; mount `./src` ke `/var/www/html`; healthcheck.
+  * **db**: `mysql:8`; **env**: `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`; volume data; healthcheck.
+  * **phpmyadmin**: `phpmyadmin:latest`; **depends_on** db; **ports**: `8094:80`; env `PMA_HOST=db`.
+* Sertakan file `.env.example` untuk kredensial & variabel penting.
+* Siapkan **skrip inisialisasi** (import schema + seed) yang otomatis jalan saat pertama kali (atau berikan perintah manual yang jelas).
+* Pastikan **CORS/headers** default aman, `upload_max_filesize` & `post_max_size` cukup (min. 10–20 MB) untuk lampiran.
+* Dokumentasikan **langkah Portainer** singkat:
+
+  1. Buka **Stacks** → **Add Stack** → paste `docker-compose.yml` → **Deploy**.
+  2. Akses app: `http://SERVER:8093/`, phpMyAdmin: `http://SERVER:8094/`.
+
+## 7) Data & Validasi (tanpa skema SQL detail)
+
+* **Mahasiswa**: NIM, nama, angkatan, status per semester (AKTIF/CUTI/NON-AKTIF/LULUS), semester masuk, semester lulus (jika ada).
+* **Judul** (wajib bagi mahasiswa): judul, abstrak, kata kunci, dokumen (opsional), status verifikasi (Diterima/Tolak/Revisi) + catatan.
+* **Penunjukan**: pembimbing I/II, penguji (≥1), alasan perubahan, tanggal efektif, audit.
+* **Penilaian**: Sempro, Semhas, Pra-Ujian (pembimbing), Skripsi (penguji) — simpan mode, komponen & bobot (jika ada), nilai final, sumber (dosen/bypass), waktu.
+* **Cuti**: semester, status disetujui, dokumen SK (opsional).
+* **Token Penguji Eksternal**: NIP, token, scope event (mahasiswa+tahap+jadwal), kedaluwarsa, status pakai, NDA setuju.
+* **Audit trail**: user, aksi, waktu, target, sebelum-sesudah (ringkas).
+
+## 8) Keamanan & Jejak
+
+* Semua aksi penting (**nilai, penunjukan, bypass, finalisasi panel**) tercatat di **audit log**.
+* **Mahasiswa tidak pernah melihat angka nilai**.
+* **Penguji hanya melihat nilai pembimbing saat Panel Live** & setelah finalisasi.
+* Penguji eksternal wajib centang **NDA** singkat sebelum akses.
+* CSRF token untuk semua form; sanitasi input & validasi server-side.
+
+## 9) Acceptance Criteria (wajib lulus)
+
+1. Aplikasi dapat dijalankan via **Portainer** menggunakan `docker-compose.yml`; app tampil di `:8093`, phpMyAdmin di `:8094`.
+2. **Mahasiswa** dapat mengirim **Judul**; setelah kirim, **Kombi** bisa **Verifikasi** dan **tetapkan pembimbing/penguji** (tercatat audit).
+3. **Pembimbing** dapat input nilai **Sempro/Semhas/Pra-Ujian**; **Penguji** dapat input nilai **Sempro/Semhas/Skripsi**.
+4. **Panel View – Live** menampilkan ringkas nilai pembimbing **ketika hari H** dan menyembunyikannya sebelum hari H.
+5. **Bypass nilai** oleh Kombi berlabel jelas + alasan, tercatat audit; jika dosen mengisi kemudian dan disetujui Kombi, nilai dosen **menggantikan**.
+6. **Masa studi (semester)** tampil benar: semester lulus – semester masuk – semester cuti (resmi).
+7. **Beban dosen** tampil (jumlah bimbingan aktif/penguji per semester) + peringatan kuota lunak.
+8. **Penguji eksternal** bisa mengakses panel dengan **NIP + Token** yang valid dan kedaluwarsa otomatis.
+9. **Mahasiswa** tidak bisa melihat nilai pada halaman manapun (blind).
+10. Tersedia **seed data** untuk langsung uji fungsi.
+
+## 10) Dokumentasi Minimal (README)
+
+* Cara deploy via Portainer.
+* Default akun & kredensial seed.
+* Cara mengatur kebijakan (bobot nilai, ambang cuti, kuota dosen).
+* Alur penggunaan ringkas per peran.
+* Catatan keamanan & backup data.
+
+---
+
+> **Output yang diharapkan dari AI Coder:**
+>
+> 1. Struktur proyek lengkap (folder `src/` dengan MVC sederhana),
+> 2. `docker-compose.yml` + `.env.example`,
+> 3. Skrip/SQL inisialisasi + seed,
+> 4. File README berisi instruksi Portainer & kredensial awal,
+> 5. Implementasi fitur sesuai acceptance criteria, **tanpa error** saat dijalankan.

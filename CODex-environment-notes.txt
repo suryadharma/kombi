@@ -1,0 +1,8 @@
+Project location:
+- SMB mount path (current workspace): /run/user/1000/kio-fuse-KoMPBE/smb/suryadharma@100.64.194.39/htdocs/kombi
+- Host filesystem path (inside server): /srv/dev-disk-by-uuid-073a5dd4-b8c5-493a-b57b-cb896b786ad6/htdocs/kombi
+
+SSH access for remote edits:
+- Command: ssh root@100.64.194.39
+- Password: but01j0
+- Once connected, project directory: /srv/dev-disk-by-uuid-073a5dd4-b8c5-493a-b57b-cb896b786ad6/htdocs/kombi
