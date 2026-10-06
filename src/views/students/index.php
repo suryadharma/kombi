@@ -7,6 +7,7 @@ $status = $status ?? 'AKTIF';
 $useActiveAngkatan = $useActiveAngkatan ?? true;
 $success = $success ?? null;
 $assignmentsByStudent = $assignmentsByStudent ?? [];
+$angkatanList = $angkatanList ?? [];
 
 if (array_key_exists('active_angkatan', $_GET)) {
     $useActiveAngkatan = (bool) $_GET['active_angkatan'];
@@ -30,22 +31,6 @@ if (array_key_exists('active_angkatan', $_GET)) {
 <?php
 // Dapatkan daftar angkatan aktif dari pengaturan
 $activeAngkatan = Settings::getActiveAngkatan();
-$angkatanList = [];
-foreach ($students as $student) {
-    $studentAngkatan = $student['angkatan'] ?? null;
-    if ($studentAngkatan === null || $studentAngkatan === '') {
-        continue;
-    }
-    if ($useActiveAngkatan) {
-        if (!empty($activeAngkatan) && !in_array($studentAngkatan, $activeAngkatan, true)) {
-            continue;
-        }
-    }
-    if (!in_array($studentAngkatan, $angkatanList, true)) {
-        $angkatanList[] = $studentAngkatan;
-    }
-}
-sort($angkatanList);
 $angkatanOptions = [
     ['value' => '', 'label' => 'Semua Angkatan' . ($useActiveAngkatan ? ' Aktif' : '')]
 ];
@@ -154,10 +139,9 @@ include VIEW_PATH . '/components/filter_bar.php';
             <div class="card-body">
                 <form id="bulkDeleteForm" method="POST" action="/students/bulk-delete">
                     <?= Csrf::field(); ?>
-                    <?php $studentsCount = count($students); ?>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">Hasil Filter</h5>
-                        <span class="badge bg-info text-dark"><?= $studentsCount ?> mahasiswa</span>
+                        <span class="badge bg-info text-dark" id="studentCountBadge">0 mahasiswa</span>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-striped table-hover" id="studentsTable">
@@ -173,64 +157,6 @@ include VIEW_PATH . '/components/filter_bar.php';
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (empty($students)): ?>
-                                <tr>
-                                    <td><input type="checkbox" disabled></td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td class="text-center" colspan="2">Tidak ada data mahasiswa</td>
-                                </tr>
-                                <?php else: ?>
-                                <?php foreach ($students as $student): ?>
-                                <tr>
-                                    <td><input type="checkbox" name="selected_students[]" value="<?= htmlspecialchars($student['id']) ?>"></td>
-                                    <td><?= htmlspecialchars($student['nim']) ?></td>
-                                    <td><?= htmlspecialchars($student['name']) ?></td>
-                                    <td><?= htmlspecialchars($student['angkatan']) ?></td>
-                                    <td><?= htmlspecialchars($student['semester_masuk']) ?></td>
-                                    <td>
-                                        <?php
-                                        $statusClass = '';
-                                        switch ($student['status']) {
-                                            case 'AKTIF':
-                                                $statusClass = 'badge bg-success';
-                                                break;
-                                            case 'CUTI':
-                                                $statusClass = 'badge bg-warning text-dark';
-                                                break;
-                                            case 'NON-AKTIF':
-                                                $statusClass = 'badge bg-secondary';
-                                                break;
-                                            case 'MENGULANG':
-                                                $statusClass = 'badge bg-danger';
-                                                break;
-                                            case 'LULUS':
-                                                $statusClass = 'badge bg-primary';
-                                                break;
-                                            default:
-                                                $statusClass = 'badge bg-light text-dark';
-                                        }
-                                        ?>
-                                        <span class="<?= $statusClass ?>"><?= htmlspecialchars($student['status']) ?></span>
-                                    </td>
-                                    <td>
-                                        <a href="/students/<?= $student['id'] ?>" class="btn btn-sm btn-info">Lihat</a>
-                                        <a href="/students/<?= $student['id'] ?>/edit" class="btn btn-sm btn-warning">Edit</a>
-                                        <?php if (!empty($student['user_id'])): ?>
-                                        <a href="/users/reset-password?type=mahasiswa&amp;user_id=<?= (int)$student['user_id'] ?>"
-                                           class="btn btn-sm btn-outline-warning"
-                                           title="Reset Password Mahasiswa">
-                                            <i class="fas fa-key"></i>
-                                        </a>
-                                        <?php endif; ?>
-                                        <a href="/students/<?= $student['id'] ?>/delete" class="btn btn-sm btn-danger">Hapus</a>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -431,22 +357,83 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (typeof $ !== 'undefined' && $.fn.DataTable && $studentsTable.length) {
+        const currentSearch = <?= json_encode($search ?? '') ?>;
+        const currentAngkatan = <?= json_encode($angkatan ?? '') ?>;
+        const currentStatus = <?= json_encode($status ?? 'AKTIF') ?>;
+        const currentUseActiveAngkatan = <?= ($useActiveAngkatan ?? true) ? '1' : '0' ?>;
+
+        const statusBadge = (status) => {
+            const map = {
+                'AKTIF': 'badge bg-success',
+                'CUTI': 'badge bg-warning text-dark',
+                'NON-AKTIF': 'badge bg-secondary',
+                'MENGULANG': 'badge bg-danger',
+                'LULUS': 'badge bg-primary'
+            };
+            const cls = map[status] || 'badge bg-light text-dark';
+            return '<span class="' + cls + '">' + $('<div>').text(status).html() + '</span>';
+        };
+
+        const actionButtons = (data, type, row) => {
+            let html = '<a href="/students/' + row.id + '" class="btn btn-sm btn-info">Lihat</a> ';
+            html += '<a href="/students/' + row.id + '/edit" class="btn btn-sm btn-warning">Edit</a> ';
+            if (row.user_id) {
+                html += '<a href="/users/reset-password?type=mahasiswa&user_id=' + row.user_id + '" class="btn btn-sm btn-outline-warning" title="Reset Password Mahasiswa"><i class="fas fa-key"></i></a> ';
+            }
+            html += '<a href="/students/' + row.id + '/delete" class="btn btn-sm btn-danger">Hapus</a>';
+            return html;
+        };
+
         dataTableApi = $studentsTable.DataTable({
             language: {
                 url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
             },
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/students/data',
+                data: function (d) {
+                    d.search = currentSearch;
+                    d.angkatan = currentAngkatan;
+                    d.status = currentStatus;
+                    d.active_angkatan = currentUseActiveAngkatan;
+                }
+            },
             pageLength: 25,
             order: [[1, 'asc']],
             lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
+            searching: false,
+            columns: [
+                {
+                    data: 'id', orderable: false, searchable: false,
+                    render: function (data) {
+                        return '<input type="checkbox" name="selected_students[]" value="' + data + '">';
+                    }
+                },
+                { data: 'nim' },
+                { data: 'name' },
+                { data: 'angkatan' },
+                { data: 'semester_masuk' },
+                { data: 'status', render: function (data) { return statusBadge(data); } },
+                { data: 'id', orderable: false, searchable: false, render: actionButtons }
+            ],
             columnDefs: [
                 { width: '5%', targets: 0 },
                 { width: '15%', targets: [1, 3, 4, 5] },
                 { width: '25%', targets: 2 },
-                { width: '15%', targets: 6 },
-                { orderable: false, searchable: false, targets: [0, 6] }
+                { width: '15%', targets: 6 }
             ],
             autoWidth: false,
-            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+            dom: 'lrtip',
+            drawCallback: function () {
+                const info = this.api().page.info();
+                const badge = document.getElementById('studentCountBadge');
+                if (badge) {
+                    badge.textContent = info.recordsDisplay + ' mahasiswa';
+                }
+                syncMasterCheckboxes();
+                updateBulkDeleteButton();
+            }
         });
     }
 

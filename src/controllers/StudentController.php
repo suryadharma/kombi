@@ -30,83 +30,21 @@ class StudentController extends BaseController {
         $angkatan = isset($_GET['angkatan']) ? trim($_GET['angkatan']) : '';
         $status = isset($_GET['status']) ? trim($_GET['status']) : 'AKTIF'; // Default filter to 'AKTIF'
         $useActiveAngkatan = isset($_GET['active_angkatan']) ? (bool)$_GET['active_angkatan'] : true; // Default to using active angkatan
-        
+
+        // Distinct angkatan list for the filter dropdown (server-side list)
+        $angkatanList = [];
         try {
-            // Get students based on filters
-            $applyActiveAngkatanFilter = $useActiveAngkatan && empty($angkatan);
-
-            if ($applyActiveAngkatanFilter) {
-                // Use active angkatan filter
-                if (!empty($search) && $status !== '') {
-                    // Search and status filters with active angkatan
-                    $stmt = $this->student->searchByAllFiltersAndActiveAngkatan($search, $status);
-                } else if (!empty($search)) {
-                    // Only search filter with active angkatan
-                    $stmt = $this->student->searchByKeywordAndActiveAngkatan($search);
-                } else if ($status !== '') {
-                    // Only status filter with active angkatan (default 'AKTIF')
-                    $stmt = $this->student->getByActiveAngkatanAndStatus($status);
-                } else {
-                    // "Semua Status" selected - get all students (including LULUS) from active angkatan
-                    // Need to get all students without status filter since user wants to see all statuses
-                    $stmt = $this->student->getAll();
-                }
-            } else {
-                // Use all students (no active angkatan filter)
-                if (!empty($search) && !empty($angkatan) && $status !== '') {
-                    // Search, angkatan, and status filters
-                    $stmt = $this->student->searchByAllFilters($search, $angkatan, $status);
-                } else if (!empty($search) && !empty($angkatan)) {
-                    // Search and angkatan filters
-                    $stmt = $this->student->searchByKeywordAndAngkatan($search, $angkatan);
-                } else if (!empty($search) && $status !== '') {
-                    // Search and status filters
-                    $stmt = $this->student->searchByKeywordAndStatus($search, $status);
-                } else if (!empty($angkatan) && $status !== '') {
-                    // Angkatan and status filters
-                    $stmt = $this->student->getByAngkatanAndStatus($angkatan, $status);
-                } else if (!empty($search)) {
-                    // Only search filter
-                    $stmt = $this->student->searchByKeyword($search);
-                } else if (!empty($angkatan)) {
-                    // Only angkatan filter
-                    $stmt = $this->student->getByAngkatan($angkatan);
-                } else if ($status !== '') {
-                    // Only status filter (default 'AKTIF')
-                    $stmt = $this->student->getByStatus($status);
-                } else {
-                    // No filters - get all students
-                    $stmt = $this->student->getAll();
-                }
-            }
-            
-            $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $angkatanStmt = $this->db->query("SELECT DISTINCT angkatan FROM students ORDER BY angkatan DESC");
+            $angkatanList = array_map('strval', $angkatanStmt->fetchAll(PDO::FETCH_COLUMN));
         } catch (Exception $e) {
-            $students = [];
-            $error = 'Gagal memuat data mahasiswa: ' . $e->getMessage();
+            $angkatanList = [];
         }
 
-        foreach ($students as &$student) {
-            if (empty($student['user_id'])) {
-                try {
-                    $userId = $this->ensureStudentUser($student['nim'], $student['name'], null);
-                    $update = "UPDATE students SET user_id = :user_id WHERE id = :id";
-                    $stmtUpdate = $this->db->prepare($update);
-                    $stmtUpdate->bindParam(':user_id', $userId, PDO::PARAM_INT);
-                    $stmtUpdate->bindParam(':id', $student['id'], PDO::PARAM_INT);
-                    $stmtUpdate->execute();
-                    $student['user_id'] = $userId;
-                } catch (Exception $e) {
-                    // Ignore to avoid breaking list rendering
-                }
-            }
-        }
-        unset($student);
-        
-        // Render view
+        // Render view (rows are loaded via server-side DataTables at /students/data)
         $this->render('students/index', [
-            'students' => $students,
+            'students' => [],
             'role' => $role,
+            'angkatanList' => $angkatanList,
             'scripts' => ['https://code.jquery.com/jquery-3.6.0.min.js'], // Explicitly load jQuery
             'search' => $search,
             'angkatan' => $angkatan,
@@ -115,7 +53,138 @@ class StudentController extends BaseController {
             'success' => $this->getFlash('success')
         ]);
     }
-    
+
+    public function listData() {
+        // Require authentication
+        $this->requireAuth();
+
+        $role = $this->getUserRole();
+        if ($role !== 'kombi' && $role !== 'superadmin') {
+            $this->jsonResponse(['draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []], 403);
+            return;
+        }
+
+        $draw = isset($_GET['draw']) ? (int)$_GET['draw'] : 1;
+        $start = isset($_GET['start']) ? max(0, (int)$_GET['start']) : 0;
+        $length = isset($_GET['length']) ? (int)$_GET['length'] : 25;
+        if ($length < 0) {
+            $length = 100000;
+        }
+
+        $search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+        $angkatan = isset($_GET['angkatan']) ? trim((string)$_GET['angkatan']) : '';
+        $status = isset($_GET['status']) ? trim((string)$_GET['status']) : 'AKTIF';
+        $useActiveAngkatan = !isset($_GET['active_angkatan']) || ((string)$_GET['active_angkatan'] !== '0');
+
+        // Build WHERE clause faithfully mirroring the original filter branches
+        $where = [];
+        $params = [];
+        $emptyResult = false;
+        $applyActive = $useActiveAngkatan && $angkatan === '';
+
+        if ($applyActive) {
+            if ($search === '' && $status === '') {
+                // "Semua Status" + no search => all students (no filter)
+            } else {
+                $active = Settings::getActiveAngkatan();
+                if (empty($active)) {
+                    $emptyResult = true;
+                } else {
+                    $ph = implode(',', array_fill(0, count($active), '?'));
+                    $where[] = "angkatan IN ($ph)";
+                    foreach ($active as $a) {
+                        $params[] = (int)$a;
+                    }
+                    if ($status !== '') {
+                        $where[] = "status = ?";
+                        $params[] = $status;
+                    } else {
+                        // search-only with active angkatan also excludes LULUS
+                        $where[] = "status != 'LULUS'";
+                    }
+                    if ($search !== '') {
+                        $where[] = "(nim LIKE ? OR name LIKE ?)";
+                        $kw = "%{$search}%";
+                        $params[] = $kw;
+                        $params[] = $kw;
+                    }
+                }
+            }
+        } else {
+            if ($angkatan !== '') {
+                $where[] = "angkatan = ?";
+                $params[] = $angkatan;
+            }
+            if ($status !== '') {
+                $where[] = "status = ?";
+                $params[] = $status;
+            }
+            if ($search !== '') {
+                $where[] = "(nim LIKE ? OR name LIKE ?)";
+                $kw = "%{$search}%";
+                $params[] = $kw;
+                $params[] = $kw;
+            }
+        }
+
+        $whereSql = (!empty($where) ? 'WHERE ' . implode(' AND ', $where) : '');
+
+        // Counts
+        $recordsTotal = (int)$this->db->query("SELECT COUNT(*) FROM students")->fetchColumn();
+        if ($emptyResult) {
+            $recordsFiltered = 0;
+        } else {
+            $countStmt = $this->db->prepare("SELECT COUNT(*) FROM students $whereSql");
+            $countStmt->execute($params);
+            $recordsFiltered = (int)$countStmt->fetchColumn();
+        }
+
+        // Ordering
+        $orderable = [1 => 'nim', 2 => 'name', 3 => 'angkatan', 4 => 'semester_masuk', 5 => 'status'];
+        $orderCol = isset($_GET['order'][0]['column']) ? (int)$_GET['order'][0]['column'] : 1;
+        $orderDir = isset($_GET['order'][0]['dir']) ? strtoupper((string)$_GET['order'][0]['dir']) : 'ASC';
+        if (!in_array($orderDir, ['ASC', 'DESC'], true)) {
+            $orderDir = 'ASC';
+        }
+        $orderField = $orderable[$orderCol] ?? 'nim';
+        $orderSql = "ORDER BY {$orderField} {$orderDir}, id ASC";
+
+        // Data
+        $data = [];
+        if (!$emptyResult) {
+            $query = "SELECT id, nim, name, angkatan, semester_masuk, status, user_id
+                      FROM students $whereSql $orderSql
+                      LIMIT $length OFFSET $start";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($rows as $row) {
+                if (empty($row['user_id'])) {
+                    try {
+                        $userId = $this->ensureStudentUser($row['nim'], $row['name'], null);
+                        $update = "UPDATE students SET user_id = :user_id WHERE id = :id";
+                        $stmtUpdate = $this->db->prepare($update);
+                        $stmtUpdate->bindParam(':user_id', $userId, PDO::PARAM_INT);
+                        $stmtUpdate->bindParam(':id', $row['id'], PDO::PARAM_INT);
+                        $stmtUpdate->execute();
+                        $row['user_id'] = $userId;
+                    } catch (Exception $e) {
+                        // Ignore to avoid breaking list rendering
+                    }
+                }
+                $data[] = $row;
+            }
+        }
+
+        $this->jsonResponse([
+            'draw' => $draw,
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data
+        ]);
+    }
+
     public function show($params) {
         // Require authentication
         $this->requireAuth();

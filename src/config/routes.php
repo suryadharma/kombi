@@ -13,6 +13,7 @@ $routes = [
 
     // Student routes
     '/students' => 'StudentController@index',
+    '/students/data' => 'StudentController@listData',
     '/students/create' => 'StudentController@create',
     '/students/store' => 'StudentController@store',
     '/students/import' => 'StudentImportController@importForm',
