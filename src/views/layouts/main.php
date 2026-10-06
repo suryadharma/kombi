@@ -236,7 +236,7 @@
     <?php endif; ?>
 </head>
 
-<body>
+<body class="d-flex flex-column min-vh-100">
     <!-- Navbar -->
     <nav class="navbar navbar-expand-xl navbar-dark modern-navbar sticky-top">
         <div class="container-fluid">
@@ -566,7 +566,7 @@
         </div>
     </nav>
 
-    <div class="container-fluid">
+    <div class="container-fluid flex-grow-1">
         <div class="row">
             <!-- Main Content -->
             <main class="col-md-12 ms-sm-auto main-content">
@@ -576,6 +576,14 @@
             </main>
         </div>
     </div>
+
+    <footer class="footer mt-auto py-3 border-top text-center">
+        <div class="container-fluid">
+            <small class="text-muted">
+                <i class="fas fa-copyright"></i> <?= date('Y') ?> <?= htmlspecialchars(AppSettings::getFooterText()) ?> | Developed by <?= AppSettings::getDeveloperLink() ?>
+            </small>
+        </div>
+    </footer>
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>

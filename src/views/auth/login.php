@@ -37,11 +37,6 @@
                     </div>
                 </form>
             </div>
-            <div class="card-footer text-center">
-                <small class="text-muted">
-                    <i class="fas fa-copyright"></i> <?= date('Y') ?> <?= htmlspecialchars(AppSettings::getFooterText()) ?> | Developed by <?= AppSettings::getDeveloperLink() ?>
-                </small>
-            </div>
         </div>
         <div class="card border-info shadow-sm">
             <div class="card-header bg-info text-white">
