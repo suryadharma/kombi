@@ -577,9 +577,9 @@
         </div>
     </div>
 
-    <footer class="footer mt-auto py-3 border-top text-center">
+    <footer class="footer mt-auto text-center">
         <div class="container-fluid">
-            <small class="text-muted">
+            <small>
                 <i class="fas fa-copyright"></i> <?= date('Y') ?> <?= htmlspecialchars(AppSettings::getFooterText()) ?> | Developed by <?= AppSettings::getDeveloperLink() ?>
             </small>
         </div>
