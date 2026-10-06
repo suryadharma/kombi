@@ -247,16 +247,7 @@ $stageLabels = [
                                         $totalWeight = 0;
                                         $totalWeightedScore = 0;
                                         
-                                        // Debug log at the start of the loop
-                                        @file_put_contents(__DIR__ . '/../../storage/debug_log.txt',
-                                            date('Y-m-d H:i:s') . " - View: Starting loop, components count=" . count($components) . "\n",
-                                            FILE_APPEND | LOCK_EX);
-                                        
                                         foreach ($components as $index => $component):
-                                            // Debug log for each component
-                                            @file_put_contents(__DIR__ . '/../../storage/debug_log.txt',
-                                                date('Y-m-d H:i:s') . " - View: Processing component {$component['name']}, readonly=" . (isset($component['readonly']) ? ($component['readonly'] ? 'true' : 'false') : 'not set') . "\n",
-                                                FILE_APPEND | LOCK_EX);
                                             $score = 0;
                                             // Check if we have existing score for this component
                                             foreach ($evaluationComponents as $ec) {
@@ -274,15 +265,6 @@ $stageLabels = [
                                                 } elseif (isset($component['description']) && preg_match('/([\d.]+)$/', $component['description'], $matches)) {
                                                     $score = $matches[1];
                                                 }
-                                            }
-                                            
-                                            // Debug log for auto-score components
-                                            if ($isReadonly) {
-                                                @file_put_contents(__DIR__ . '/../../storage/debug_log.txt',
-                                                    date('Y-m-d H:i:s') . " - View: Component {$component['name']}, readonly=" . ($isReadonly ? 'true' : 'false') .
-                                                    ", auto_score=" . ($component['auto_score'] ?? 'null') .
-                                                    ", score=" . $score . "\n",
-                                                    FILE_APPEND | LOCK_EX);
                                             }
 
                                             $weightedScore = $score * $component['weight'];

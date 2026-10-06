@@ -39,4 +39,3 @@ if (!defined('BASE_PATH')) {
 require_once BASE_PATH . '/config/database.php';
 require_once BASE_PATH . '/helpers/Settings.php';
 require_once BASE_PATH . '/helpers/AppSettings.php';
-require_once BASE_PATH . '/helpers/DebugLog.php';

@@ -147,11 +147,7 @@ class SettingsController extends BaseController
         if (empty($section)) {
             $section = 'all';
         }
-        
-        // Debug: Log the section and POST data
-        error_log("Settings update - Section: " . $section . ", Role: " . $this->getUserRole());
-        error_log("POST data: " . print_r($_POST, true));
-        
+
         try {
             $upsertQuery = "INSERT INTO settings (key_name, value) VALUES (:key, :value)
                             ON DUPLICATE KEY UPDATE value = :value";
@@ -432,57 +428,40 @@ class SettingsController extends BaseController
         $db = $database->getConnection();
         
         try {
-            error_log('Getting current user email...');
             // Get current user email
             $userId = $_SESSION['user_id'] ?? null;
             if (!$userId) {
                 throw new Exception('User not found');
             }
-            error_log('User ID: ' . $userId);
-            
+
             $userQuery = "SELECT email FROM users WHERE id = :user_id LIMIT 1";
             $userStmt = $db->prepare($userQuery);
             $userStmt->execute([':user_id' => $userId]);
             $user = $userStmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$user || empty($user['email'])) {
                 throw new Exception('Email pengguna tidak ditemukan. Silakan set email di profil Anda terlebih dahulu.');
             }
-            
+
             $toEmail = $user['email'];
-            error_log('To email: ' . $toEmail);
-            
-            // Log email settings for debugging
-            $emailEnabled = Settings::get('email_enabled', '0');
-            $emailUsername = Settings::get('email_username', '');
-            $emailPassword = Settings::get('email_password', '');
-            error_log('Email settings - enabled: ' . $emailEnabled);
-            error_log('Email settings - username: ' . $emailUsername);
-            error_log('Email settings - password set: ' . (!empty($emailPassword) ? 'yes' : 'no'));
-            
+
             // Send test email using EmailService
-            error_log('Creating EmailService...');
             $emailService = new EmailService($db);
-            error_log('Calling sendTestEmail...');
             $result = $emailService->sendTestEmail($toEmail);
-            error_log('sendTestEmail result: ' . json_encode($result));
-            
+
             if ($result['success']) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => true, 'to' => $toEmail]);
-                error_log('Test email sent successfully');
             } else {
                 header('Content-Type: application/json');
                 $errorMsg = $result['message'] ?? 'Gagal mengirim email test';
                 echo json_encode(['success' => false, 'message' => $errorMsg]);
-                error_log('Test email failed: ' . $errorMsg);
             }
         } catch (Exception $e) {
-            error_log('Test email error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            error_log('Test email error: ' . $e->getMessage());
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
-        error_log('testEmail() completed');
     }
 
     /**
@@ -521,17 +500,13 @@ class SettingsController extends BaseController
         $db = $database->getConnection();
         
         try {
-            error_log('Starting email diagnostic...');
             $emailService = new EmailService($db);
-            error_log('EmailService created, calling diagnoseEmailConfiguration...');
             $result = $emailService->diagnoseEmailConfiguration();
-            error_log('Diagnostic completed: ' . json_encode($result));
-            
+
             header('Content-Type: application/json');
             echo json_encode(['success' => true, 'data' => $result]);
         } catch (Throwable $e) {
-            error_log('Email diagnostic error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            error_log('Stack trace: ' . $e->getTraceAsString());
+            error_log('Email diagnostic error: ' . $e->getMessage());
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
         }

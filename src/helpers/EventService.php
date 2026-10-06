@@ -225,29 +225,13 @@ class EventService
      */
     public static function queueEmailForLecturer(PDO $db, int $studentId, string $stage, int $lecturerId): void
     {
-        // Write to a simple debug file
-        $debugFile = __DIR__ . '/../../storage/logs/email_debug.log';
-        $debugDir = dirname($debugFile);
-        if (!is_dir($debugDir)) {
-            @mkdir($debugDir, 0755, true);
-        }
-        @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - queueEmailForLecturer called: studentId=$studentId, stage=$stage, lecturerId=$lecturerId\n", FILE_APPEND);
-        
         try {
-            error_log("=== EventService::queueEmailForLecturer START ===");
-            error_log("studentId={$studentId}, stage={$stage}, lecturerId={$lecturerId}");
-            
             // Cek apakah fitur email diaktifkan
             $enabled = Settings::get('email_enabled', '0');
-            error_log("email_enabled setting: " . var_export($enabled, true));
-            
+
             if ($enabled !== '1') {
-                error_log("Email is DISABLED, returning early");
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Email is DISABLED, returning\n", FILE_APPEND);
                 return; // Email tidak diaktifkan
             }
-            error_log("Email is ENABLED, proceeding...");
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Email is ENABLED, proceeding\n", FILE_APPEND);
 
             // Cek email dosen
             $lecturerQuery = "SELECT u.name, l.email
@@ -259,18 +243,12 @@ class EventService
             $lecturerStmt->execute();
             $lecturer = $lecturerStmt->fetch(PDO::FETCH_ASSOC);
 
-            error_log("EventService::queueEmailForLecturer - Lecturer data: " . json_encode($lecturer));
-
             // Skip jika email kosong
             if (!$lecturer || empty($lecturer['email'])) {
-                error_log("EventService::queueEmailForLecturer - Lecturer email is EMPTY, returning");
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Lecturer email is EMPTY, returning\n", FILE_APPEND);
                 return;
             }
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Lecturer email found: {$lecturer['email']}\n", FILE_APPEND);
 
             // Get student info
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Getting student info...\n", FILE_APPEND);
             $studentQuery = "SELECT s.*, t.title FROM students s
                               LEFT JOIN titles t ON s.id = t.student_id
                               WHERE s.id = :student_id";
@@ -280,18 +258,14 @@ class EventService
             $student = $studentStmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$student) {
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Student not found, returning\n", FILE_APPEND);
                 return;
             }
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Student found: {$student['name']}\n", FILE_APPEND);
 
             // Get event info
             $eventType = self::toEventType($stage);
             if (!$eventType) {
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Invalid event type for stage: {$stage}, returning\n", FILE_APPEND);
                 return;
             }
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Event type: {$eventType}\n", FILE_APPEND);
 
             $eventQuery = "SELECT * FROM events
                           WHERE student_id = :student_id
@@ -304,10 +278,8 @@ class EventService
             $event = $eventStmt->fetch(PDO::FETCH_ASSOC);
 
             $eventDate = $event ? date('d/m/Y', strtotime($event['scheduled_date'])) : date('d/m/Y');
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Event date: {$eventDate}\n", FILE_APPEND);
 
             // Get evaluation data for this lecturer
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Getting evaluation data...\n", FILE_APPEND);
             $evalQuery = "SELECT e.*, u.name as evaluator_name, u.nip, a.role as assignment_role,
                           u.id as evaluator_id, l.email as evaluator_email
                           FROM evaluations e
@@ -326,14 +298,10 @@ class EventService
             $evaluation = $evalStmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$evaluation) {
-                error_log("EventService::queueEmailForLecturer - No evaluation found for lecturer {$lecturerId}");
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - No evaluation found for lecturer {$lecturerId}, returning\n", FILE_APPEND);
                 return;
             }
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Evaluation found, score: {$evaluation['final_score']}\n", FILE_APPEND);
 
             // Fetch component scores for this evaluation (same as EvaluationExportService)
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Fetching component scores...\n", FILE_APPEND);
             $evaluationId = $evaluation['id'];
             $components = [];
             $componentScoreQuery = "SELECT ec.name, ec.weight, es.score
@@ -346,7 +314,6 @@ class EventService
             $componentScoreStmt->execute();
             $componentScores = $componentScoreStmt->fetchAll(PDO::FETCH_ASSOC);
             
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Component scores count: " . count($componentScores) . "\n", FILE_APPEND);
             
             // Build components array with calculated weighted scores
             foreach ($componentScores as $component) {
@@ -380,15 +347,12 @@ class EventService
             }
             
             // Build role label (same as EvaluationExportService)
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Building role label...\n", FILE_APPEND);
             $assignmentRole = $evaluation['assignment_role'] ?? null;
             $evaluatorRole = $evaluation['evaluator_role'] ?? null;
             $roleLabel = self::formatEvaluationRoleLabel($assignmentRole, $evaluatorRole);
             $evaluation['role_label'] = $roleLabel;
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Role label: {$roleLabel}\n", FILE_APPEND);
 
             // Generate PDF for this lecturer's evaluation
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Generating PDF...\n", FILE_APPEND);
             $pdfPath = '';
             try {
                 // Create storage directory if it doesn't exist
@@ -401,43 +365,29 @@ class EventService
                 $pdfFileName = "evaluation_{$studentId}_{$stage}_{$lecturerId}_" . time() . ".pdf";
                 $pdfPath = $storageDir . '/' . $pdfFileName;
                 
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - PDF path: {$pdfPath}\n", FILE_APPEND);
                 
                 // Generate PDF
                 PdfExporter::generateSingleEvaluationPdf($student, $stage, $evaluation, $pdfPath);
-                
-                error_log("PDF generated: {$pdfPath}");
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - PDF generated successfully\n", FILE_APPEND);
             } catch (Exception $pdfEx) {
                 error_log("EventService::queueEmailForLecturer - PDF generation failed: " . $pdfEx->getMessage());
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - PDF generation FAILED: " . $pdfEx->getMessage() . "\n", FILE_APPEND);
                 // Continue without PDF
                 $pdfPath = '';
             }
             
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Generating email content...\n", FILE_APPEND);
 
             // Generate email content
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Generating email content...\n", FILE_APPEND);
             
             try {
                 $emailHelper = new EmailQueueHelper($db);
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - EmailQueueHelper instantiated\n", FILE_APPEND);
                 
                 $subject = $emailHelper->generateSubject($eventType, $student['name']);
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Subject generated: {$subject}\n", FILE_APPEND);
                 
                 $body = $emailHelper->generateBody($eventType, $student['name'], $student['nim'], $student['title'] ?? 'Judul tidak tersedia', $eventDate);
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Body generated (length: " . strlen($body) . ")\n", FILE_APPEND);
             } catch (Exception $e) {
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - EmailQueueHelper ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 // Use fallback subject/body
                 $subject = "Dokumen Penilaian - {$student['name']}";
                 $body = "Berikut terlampir dokumen penilaian untuk mahasiswa {$student['name']} ({$student['nim']})";
             }
-
-            error_log("EventService::queueEmailForLecturer - About to queue email to: {$lecturer['email']}, Subject: {$subject}");
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - About to queue email to: {$lecturer['email']}\n", FILE_APPEND);
 
             // Queue email for asynchronous sending instead of sending immediately
             // This improves performance by not blocking the user's request
@@ -454,26 +404,9 @@ class EventService
                 1 // priority: 1 = high
             );
 
-            error_log("EventService::queueEmailForLecturer - Email queued with ID: " . ($queueId ?: 'false'));
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Email queued with ID: " . ($queueId ?: 'false') . "\n", FILE_APPEND);
-
-            if ($queueId) {
-                error_log("Email queued successfully for {$lecturer['name']} ({$lecturer['email']}) - Queue ID: {$queueId}");
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - ✅ Email queued successfully! Queue ID: {$queueId}\n", FILE_APPEND);
-            } else {
-                error_log("Failed to queue email for {$lecturer['name']} ({$lecturer['email']})");
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - ❌ Failed to queue email\n", FILE_APPEND);
-            }
-            
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - === queueEmailForLecturer END ===\n", FILE_APPEND);
-
         } catch (Exception $e) {
-            error_log("=== EventService::queueEmailForLecturer EXCEPTION ===");
-            error_log("Message: " . $e->getMessage());
-            error_log("File: " . $e->getFile() . " Line: " . $e->getLine());
-            error_log("Trace: " . $e->getTraceAsString());
+            error_log("EventService::queueEmailForLecturer error: " . $e->getMessage());
         }
-        error_log("=== EventService::queueEmailForLecturer END ===");
     }
 
     /**

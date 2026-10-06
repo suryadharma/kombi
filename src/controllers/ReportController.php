@@ -575,74 +575,28 @@ class ReportController extends BaseController
      */
     public function studyPeriodData()
     {
-        // Define log file path
-        $logFile = __DIR__ . '/../../storage/debug_log.txt';
-        
-        // Helper function for logging
-        $log = function($message) use ($logFile) {
-            $timestamp = date('Y-m-d H:i:s');
-            @file_put_contents($logFile, "[{$timestamp}] {$message}\n", FILE_APPEND | LOCK_EX);
-        };
-        
-        // Register shutdown function to catch fatal errors
-        register_shutdown_function(function() use ($log) {
-            $error = error_get_last();
-            if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-                $log("FATAL ERROR: {$error['message']} in {$error['file']}:{$error['line']}");
-            }
-        });
-        
-        // Enable error reporting
-        error_reporting(E_ALL);
-        ini_set('display_errors', '0');
-        ini_set('log_errors', '1');
-        ini_set('error_log', __DIR__ . '/../../storage/php_errors.log');
-        
-        // Log that we're here
-        $log("studyPeriodData called");
-        $log("REQUEST_URI: " . ($_SERVER['REQUEST_URI'] ?? 'N/A'));
-        $log("GET params: " . json_encode($_GET));
-        
         try {
-            $log("Before ensureAccess");
             $this->ensureAccess();
-            $log("After ensureAccess");
-            
+
             // Check if reportService exists
-            $log("Checking reportService...");
             if ($this->reportService === null) {
-                $log("ERROR: reportService is NULL!");
                 throw new Exception('reportService is not initialized');
             }
-            $log("reportService exists");
-            
+
             $request = $_GET;
-            $log("After \$request = \$_GET");
-            
+
             $angkatanFilter = isset($_GET['angkatan']) && $_GET['angkatan'] !== '' ? (int) $_GET['angkatan'] : null;
-            $log("angkatanFilter: " . var_export($angkatanFilter, true));
-            
+
             // Use student_search parameter from form (not DataTables' built-in search)
             $searchFilter = isset($_GET['student_search']) ? trim($_GET['student_search']) : '';
-            $log("searchFilter: " . var_export($searchFilter, true));
-            
-            $statusFilter = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
-            $log("statusFilter: " . var_export($statusFilter, true));
 
-            $log("Before calling getStudyPeriodDataServerSide");
-            
+            $statusFilter = isset($_GET['status']) && $_GET['status'] !== '' ? $_GET['status'] : null;
+
             $result = $this->reportService->getStudyPeriodDataServerSide($request, $angkatanFilter, $searchFilter, $statusFilter);
-            
-            $log("After getStudyPeriodDataServerSide - result length: " . strlen($result));
-            
+
             header('Content-Type: application/json');
             echo $result;
-            $log("Response sent successfully");
         } catch (Throwable $e) {
-            $log("Throwable caught: " . $e->getMessage());
-            $log("File: " . $e->getFile() . " Line: " . $e->getLine());
-            $log("Stack trace:\n" . $e->getTraceAsString());
-            
             header('Content-Type: application/json');
             echo json_encode([
                 'draw' => isset($request['draw']) ? (int)$request['draw'] : 1,
@@ -651,8 +605,7 @@ class ReportController extends BaseController
                 'data' => [],
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'debug' => 'Check debug_log.txt for details'
+                'line' => $e->getLine()
             ]);
         }
         exit;

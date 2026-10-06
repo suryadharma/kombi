@@ -166,16 +166,12 @@ class ScoreController extends BaseController
 
     public function exportFinalThesisScore($params)
     {
-        // Debug log
-        file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - exportFinalThesisScore called with params: " . json_encode($params) . "\n", FILE_APPEND | LOCK_EX);
-        
         $this->requireAuth();
         $role = $this->getUserRole();
         
         // Extract studentId from params array
         $studentId = is_array($params) ? (int) ($params['id'] ?? $params[0] ?? 0) : (int) $params;
         
-        file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - After requireAuth, studentId: $studentId\n", FILE_APPEND | LOCK_EX);
 
         // Check permissions
         if (!in_array($role, ['kombi', 'superadmin', 'dosen'], true) && !RoleHelper::isLecturerRole($role)) {
@@ -443,15 +439,11 @@ class ScoreController extends BaseController
 
     private function calculateFinalThesisScore(PDO $db, int $studentId, array $stagesData)
     {
-        // Debug log
-        @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - calculateFinalThesisScore called for student $studentId\n", FILE_APPEND | LOCK_EX);
-        
         // Check for bypass in Ujian stage (which we interpret as 'Final' bypass based on user request)
         if (!empty($stagesData['ujian']['evaluations'])) {
             foreach ($stagesData['ujian']['evaluations'] as $eval) {
                 if (($eval['mode'] ?? '') === 'bypass') {
                     $score = (float) $eval['final_score'];
-                    @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - Bypass found, returning score: $score\n", FILE_APPEND | LOCK_EX);
                     return [
                         'value' => $score,
                         'letter' => ScoreHelper::letterGrade($score),
@@ -486,7 +478,6 @@ class ScoreController extends BaseController
         $stmt->execute();
         $evals = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - Found " . count($evals) . " evaluations for student $studentId\n", FILE_APPEND | LOCK_EX);
         
         $praUjianSum = 0;
         $praUjianN = 0;
@@ -495,7 +486,6 @@ class ScoreController extends BaseController
 
         foreach ($evals as $eval) {
             $score = (float) ($eval['total_score'] ?? 0); // Use Raw Score (Σ weight * score)
-            @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - Stage: {$eval['stage']}, Score: $score\n", FILE_APPEND | LOCK_EX);
 
             if ($eval['stage'] === 'pra-ujian') {
                 $praUjianSum += $score;
@@ -509,11 +499,9 @@ class ScoreController extends BaseController
         $praUjianAvg = $praUjianN > 0 ? $praUjianSum / $praUjianN : 0;
         $ujianAvg = $ujianN > 0 ? $ujianSum / $ujianN : 0;
         
-        @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - Pra-ujian: $praUjianSum / $praUjianN = $praUjianAvg, Ujian: $ujianSum / $ujianN = $ujianAvg\n", FILE_APPEND | LOCK_EX);
 
         $finalScore = $praUjianAvg + $ujianAvg;
         
-        @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - Final score: $finalScore\n", FILE_APPEND | LOCK_EX);
 
         return [
             'value' => $finalScore,
@@ -1350,9 +1338,6 @@ class ScoreController extends BaseController
      */
     public function lecturerRecapData()
     {
-        // Debug: log method entry
-        file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " LECTURER_RECAP: Method called\n", FILE_APPEND | LOCK_EX);
-        
         $this->requireAuth();
 
         $role = $this->getUserRole();
@@ -1434,14 +1419,7 @@ class ScoreController extends BaseController
             }),
         ];
 
-        // Debug: log query and bindings
-        file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " LECTURER_RECAP: Query: " . $baseQuery . "\n", FILE_APPEND | LOCK_EX);
-        file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " LECTURER_RECAP: Bindings: " . print_r($bindings, true) . "\n", FILE_APPEND | LOCK_EX);
-        
         $result = DataTablesHelper::process($_GET, $db, $baseQuery, $columns, $bindings);
-
-        // Debug: log result
-        file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " LECTURER_RECAP: Result count: " . count($result['data'] ?? []) . "\n", FILE_APPEND | LOCK_EX);
 
         // Enrich data with scores
         if (!empty($result['data'])) {
@@ -1608,7 +1586,6 @@ class ScoreController extends BaseController
             }
         }
 
-        file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " LECTURER_RECAP: Final result: " . json_encode($result) . "\n", FILE_APPEND | LOCK_EX);
         echo json_encode($result);
     }
 

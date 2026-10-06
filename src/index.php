@@ -94,32 +94,14 @@ $paramKeyMap = ['id', 'stage', 'event_id'];
  * Dispatch a controller method with appropriate parameters.
  */
 function dispatchRoute($controllerName, $method, $matches = [], $paramKeyMap = []) {
-    global $debugMode;
-
-    // Log dispatch attempt (only when debug mode is enabled)
-    $logFile = __DIR__ . '/../storage/debug_log.txt';
-    $log = function($msg) use ($logFile, $debugMode) {
-        if (!$debugMode) {
-            return;
-        }
-        @file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] DISPATCH: {$msg}\n", FILE_APPEND | LOCK_EX);
-    };
-    
-    $log("Dispatching to {$controllerName}@{$method}");
-    $log("Matches: " . json_encode($matches));
-    
     try {
         $controller = new $controllerName();
-        $log("Controller created successfully");
-        
+
         $reflection = new ReflectionMethod($controller, $method);
         $paramCount = $reflection->getNumberOfParameters();
-        $log("Method {$method} has {$paramCount} parameters");
 
         if ($paramCount === 0) {
-            $log("Calling method with 0 parameters");
             $controller->$method();
-            $log("Method executed successfully");
             return;
         }
 
@@ -129,20 +111,15 @@ function dispatchRoute($controllerName, $method, $matches = [], $paramKeyMap = [
                 $key = $paramKeyMap[$index] ?? $index;
                 $params[$key] = $value;
             }
-            $log("Calling method with 1 parameter: " . json_encode($params));
             $controller->$method($params);
-            $log("Method executed successfully");
             return;
         }
 
         if ($paramCount > 1) {
-            $log("Calling method with {$paramCount} parameters");
             $controller->$method(...$matches);
-            $log("Method executed successfully");
             return;
         }
     } catch (Throwable $e) {
-        $log("ERROR in dispatchRoute: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
         throw $e;
     }
 }

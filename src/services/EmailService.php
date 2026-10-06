@@ -142,28 +142,17 @@ class EmailService
      */
     public function queueEmail(string $to, string $toName, string $subject, string $body, ?string $attachmentPath, string $eventType, int $studentId, int $priority = 0): int|false
     {
-        $debugFile = __DIR__ . '/../../storage/logs/email_debug.log';
-        
-        @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - EmailService::queueEmail() STARTED\n", FILE_APPEND);
-        @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Parameters: to=$to, toName=$toName, eventType=$eventType, studentId=$studentId, priority=$priority\n", FILE_APPEND);
-        
         if (!$this->isEnabled()) {
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Email is NOT ENABLED, returning false\n", FILE_APPEND);
             return false;
         }
-        
-        @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Email is ENABLED, proceeding\n", FILE_APPEND);
 
         try {
             $query = "INSERT INTO email_queue
                 (to_email, to_name, subject, body, attachment_path, event_type, student_id, priority, status, scheduled_at)
                 VALUES (:to_email, :to_name, :subject, :body, :attachment_path, :event_type, :student_id, :priority, 'PENDING', NOW())";
-            
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Query prepared\n", FILE_APPEND);
-            
+
             $stmt = $this->db->prepare($query);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Statement prepared successfully\n", FILE_APPEND);
-            
+
             $stmt->bindParam(':to_email', $to);
             $stmt->bindParam(':to_name', $toName);
             $stmt->bindParam(':subject', $subject);
@@ -172,45 +161,23 @@ class EmailService
             $stmt->bindParam(':event_type', $eventType);
             $stmt->bindParam(':student_id', $studentId, PDO::PARAM_INT);
             $stmt->bindParam(':priority', $priority, PDO::PARAM_INT);
-            
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Parameters bound, about to execute\n", FILE_APPEND);
-            
-            // Check database connection state
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - DB connection state: " . ($this->db ? 'OK' : 'NULL') . "\n", FILE_APPEND);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - About to call execute()\n", FILE_APPEND);
-            
+
             $executeResult = $stmt->execute();
-            
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - execute() returned, result: " . var_export($executeResult, true) . "\n", FILE_APPEND);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Execute result: " . ($executeResult ? 'SUCCESS' : 'FAILED') . "\n", FILE_APPEND);
-            
+
             if ($executeResult) {
                 $lastId = $this->db->lastInsertId();
-                @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Email queued with ID: $lastId\n", FILE_APPEND);
                 return (int) $lastId;
             }
-            
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Execute failed, returning false\n", FILE_APPEND);
-            
-            // Log error info
-            $errorInfo = $stmt->errorInfo();
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - PDO ErrorInfo: " . print_r($errorInfo, true) . "\n", FILE_APPEND);
-            
+
             return false;
 
         } catch (Exception $e) {
             $errorMsg = "EmailService::queueEmail Error: " . $e->getMessage();
             error_log($errorMsg);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - EXCEPTION: $errorMsg\n", FILE_APPEND);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Exception class: " . get_class($e) . "\n", FILE_APPEND);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Stack trace: " . $e->getTraceAsString() . "\n", FILE_APPEND);
             return false;
         } catch (Throwable $e) {
             $errorMsg = "EmailService::queueEmail Throwable: " . $e->getMessage();
             error_log($errorMsg);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - THROWABLE: $errorMsg\n", FILE_APPEND);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Throwable class: " . get_class($e) . "\n", FILE_APPEND);
-            @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Stack trace: " . $e->getTraceAsString() . "\n", FILE_APPEND);
             return false;
         }
     }

@@ -191,24 +191,6 @@ class EvaluationController extends BaseController
                 } else {
                     $examOutcomeEditable = false;
                 }
-
-                // DEBUG: Log values for troubleshooting
-                $debugInfo = sprintf(
-                    "DEBUG [Exam Outcome]: Role=%s, SessionUserID=%s, StudentID=%s, userAssignmentRole=%s, examOutcomeEditable=%s",
-                    $role,
-                    $_SESSION['user_id'] ?? 'null',
-                    $studentId,
-                    $userAssignmentRole ?? 'null',
-                    $examOutcomeEditable ? 'true' : 'false'
-                );
-                error_log($debugInfo);
-
-                // Also write to debug file for easier access
-                file_put_contents(
-                    __DIR__ . '/../storage/logs/exam_debug.log',
-                    date('Y-m-d H:i:s') . ' - ' . $debugInfo . "\n",
-                    FILE_APPEND
-                );
             }
 
             [$allowed, $lockReason] = EvaluationPolicy::checkStageAccess($db, (int) $student['id'], $stage, $role, (int) $_SESSION['user_id']);
@@ -259,9 +241,6 @@ class EvaluationController extends BaseController
             $autoScoreStages = ['pra-ujian', 'ujian'];
             if (in_array($stage, $autoScoreStages, true)) {
                 $previousScores = $this->getPreviousEvaluatorScores($db, $studentId, $selectedEvaluatorId);
-                
-                // Debug log
-                @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - Auto-score for student $studentId, stage $stage, evaluator $selectedEvaluatorId: " . json_encode($previousScores) . "\n", FILE_APPEND | LOCK_EX);
 
                 foreach ($components as &$component) {
                     $autoScore = null;
@@ -276,19 +255,9 @@ class EvaluationController extends BaseController
                     if ($autoScore !== null) {
                         $component['readonly'] = true;
                         $component['auto_score'] = $autoScore;
-                        
-                        // Debug log for each component that gets auto-score
-                        @file_put_contents(__DIR__ . '/../../storage/debug_log.txt',
-                            date('Y-m-d H:i:s') . " - Controller: Set auto_score for {$component['name']}: {$autoScore}, readonly=true\n",
-                            FILE_APPEND | LOCK_EX);
                     }
                 }
                 unset($component);
-                
-                // Debug log: check if components have readonly set
-                @file_put_contents(__DIR__ . '/../../storage/debug_log.txt',
-                    date('Y-m-d H:i:s') . " - Controller: Components after processing, count=" . count($components) . "\n",
-                    FILE_APPEND | LOCK_EX);
             }
 
             // Show evaluation form
@@ -349,93 +318,47 @@ class EvaluationController extends BaseController
             $scores['semhas'] = ScoreHelper::normalize($semhasScore['final_score'] ?? null);
         }
 
-        // Debug log
-        @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', date('Y-m-d H:i:s') . " - getPreviousEvaluatorScores for student $studentId, evaluator $evaluatorId: " . json_encode($scores) . "\n", FILE_APPEND | LOCK_EX);
-
         return $scores;
     }
 
     public function saveEvaluation($studentId, $stage)
     {
-        // EMERGENCY DEBUG - Die immediately to prove this code is executed
-        $dieMsg = "=== EMERGENCY: saveEvaluation CALLED at " . date('Y-m-d H:i:s') . " ===";
-        file_put_contents(__DIR__ . '/../../storage/emergency_log.txt', $dieMsg . "\n", FILE_APPEND | LOCK_EX);
-        // die($dieMsg); // Commented out for now - just log it
-        
-        // SUPER AGGRESSIVE DEBUGGING - Write to multiple locations including die()
-        $timestamp = date('Y-m-d H:i:s');
-        $debugMsg = "[$timestamp] saveEvaluation CALLED: studentId=$studentId, stage=$stage\n";
-        
-        // Write to system error log (always works)
-        error_log("=== saveEvaluation START: studentId=$studentId, stage=$stage ===");
-        
-        // Write to debug_log.txt with absolute path
-        $debugLogPath = __DIR__ . '/../../storage/debug_log.txt';
-        @file_put_contents($debugLogPath, "[$timestamp] saveEvaluation: studentId=$studentId, stage=$stage\n", FILE_APPEND | LOCK_EX);
-        
-        // Write to email_debug.log with absolute path
-        $logFile = __DIR__ . '/../../storage/logs/email_debug.log';
-        $logDir = dirname($logFile);
-        if (!is_dir($logDir)) {
-            @mkdir($logDir, 0755, true);
-        }
-        @file_put_contents($logFile, $debugMsg, FILE_APPEND | LOCK_EX);
-        
-        // Write to a separate file that we can check
-        $saveLogPath = __DIR__ . '/../../storage/save_evaluation_log.txt';
-        @file_put_contents($saveLogPath, "[$timestamp] saveEvaluation CALLED and executed\n", FILE_APPEND | LOCK_EX);
-        
         // Require authentication
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Before requireAuth\n", FILE_APPEND | LOCK_EX);
         $this->requireAuth();
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - After requireAuth\n", FILE_APPEND | LOCK_EX);
 
         // Only pembimbing, penguji, kombi and superadmin can save evaluation
         $role = $this->getUserRole();
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Role: $role\n", FILE_APPEND | LOCK_EX);
         if (
             !RoleHelper::isLecturerRole($role) &&
             $role !== 'superadmin' &&
             $role !== 'kombi'
         ) {
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Redirect: Role not allowed\n", FILE_APPEND | LOCK_EX);
             $this->redirect('/dashboard');
             return;
         }
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Role check passed\n", FILE_APPEND | LOCK_EX);
 
         // Enforce role-stage mapping (except for kombi and superadmin)
         if (!$this->isStageAllowedForRole($stage, $role)) {
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Redirect: Stage not allowed for role\n", FILE_APPEND | LOCK_EX);
             $this->redirect('/dashboard');
             return;
         }
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Stage allowed for role\n", FILE_APPEND | LOCK_EX);
 
         // Database connection
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Before Database connection\n", FILE_APPEND | LOCK_EX);
         $database = new Database();
         $db = $database->getConnection();
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - After Database connection\n", FILE_APPEND | LOCK_EX);
 
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Before EvaluationPolicy check\n", FILE_APPEND | LOCK_EX);
         [$allowed, $lockReason] = EvaluationPolicy::checkStageAccess($db, (int) $studentId, $stage, $role, (int) $_SESSION['user_id']);
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - After EvaluationPolicy check: allowed=" . ($allowed ? 'true' : 'false') . ", reason=$lockReason\n", FILE_APPEND | LOCK_EX);
         if (!$allowed) {
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Early return: Not allowed ({$lockReason})\n", FILE_APPEND | LOCK_EX);
             $this->setFlash('error', $lockReason);
             $this->redirect('/scores/submit');
             return;
         }
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - After EvaluationPolicy check - PASSED\n", FILE_APPEND | LOCK_EX);
 
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Getting targetEvaluatorId\n", FILE_APPEND | LOCK_EX);
         
         $userAssignmentRole = null;
         $targetEvaluatorId = $_SESSION['user_id'] ?? null;
         $targetEvaluatorRole = $role;
 
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - targetEvaluatorId=$targetEvaluatorId, role=$role\n", FILE_APPEND | LOCK_EX);
         
         if (($role === 'superadmin' || $role === 'kombi') && isset($_POST['evaluator_id']) && ctype_digit((string) $_POST['evaluator_id'])) {
             $targetEvaluatorId = (int) $_POST['evaluator_id'];
@@ -443,47 +366,37 @@ class EvaluationController extends BaseController
             if ($targetUser) {
                 $targetEvaluatorRole = RoleHelper::normalizeLecturerRole($targetUser['role']);
             }
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Kombi/superadmin selected evaluator: $targetEvaluatorId\n", FILE_APPEND | LOCK_EX);
         } elseif ($role === 'superadmin' || $role === 'kombi') {
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Early return: No evaluator selected for kombi/superadmin\n", FILE_APPEND | LOCK_EX);
             $this->setFlash('error', 'Pilih penilai terlebih dahulu sebelum menyimpan data.');
             $this->redirect("/evaluations/form/{$studentId}/{$stage}");
             return;
         } else {
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Lecturer branch, getting current user\n", FILE_APPEND | LOCK_EX);
             $currentUser = $this->getUserById($db, $targetEvaluatorId ?? 0);
             if ($currentUser) {
                 $targetEvaluatorRole = RoleHelper::normalizeLecturerRole($currentUser['role']);
             }
         }
         
-        @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Before try block\n", FILE_APPEND | LOCK_EX);
         try {
             $db->beginTransaction();
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Transaction started\n", FILE_APPEND | LOCK_EX);
 
             // For superadmin and kombi, allow access to any student
             if ($role !== 'superadmin' && $role !== 'kombi') {
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Fetching assignment roles\n", FILE_APPEND | LOCK_EX);
                 $userAssignmentRoles = AssignmentRoleHelper::fetchRoles($db, (int) $studentId, (int) $_SESSION['user_id']);
                 $userAssignmentRole = AssignmentRoleHelper::pickRoleForStage($userAssignmentRoles, $stage);
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - userAssignmentRole=$userAssignmentRole\n", FILE_APPEND | LOCK_EX);
 
                 if ($userAssignmentRole === null) {
-                    @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Redirect: userAssignmentRole is null\n", FILE_APPEND | LOCK_EX);
                     $this->redirect('/students');
                     return;
                 }
 
                 if ($stage === 'pra-ujian' && !AssignmentRoleHelper::hasRolePrefix($userAssignmentRoles, 'pembimbing')) {
-                    @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Redirect: pra-ujian requires pembimbing\n", FILE_APPEND | LOCK_EX);
                     $this->setFlash('error', 'Akses ditolak: Tahap pra-ujian hanya untuk dosen pembimbing mahasiswa ini.');
                     $this->redirect('/scores/submit');
                     return;
                 }
 
                 $targetEvaluatorRole = AssignmentRoleHelper::inferLecturerRole($userAssignmentRoles, $stage, $targetEvaluatorRole);
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - targetEvaluatorRole=$targetEvaluatorRole\n", FILE_APPEND | LOCK_EX);
             }
 
             if (($role === 'superadmin' || $role === 'kombi') && $targetEvaluatorId) {
@@ -509,7 +422,6 @@ class EvaluationController extends BaseController
             if ($examOutcomeEditable) {
                 $examOutcome = isset($_POST['exam_outcome']) ? strtoupper(trim($_POST['exam_outcome'])) : '';
                 if (!in_array($examOutcome, ['LULUS', 'MENGULANG'], true)) {
-                    @file_put_contents(__DIR__ . '/../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Early return: Invalid exam outcome\n", FILE_APPEND);
                     $db->rollBack();
                     $this->setFlash('error', 'Status sidang skripsi wajib dipilih (Lulus atau Mengulang).');
                     $this->redirect("/evaluations/form/{$studentId}/{$stage}");
@@ -601,9 +513,7 @@ class EvaluationController extends BaseController
                 $evaluationId = $evaluation['id'];
                 
                 // Check if evaluation can be edited (edit window + lock status)
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Before edit window check\n", FILE_APPEND | LOCK_EX);
                 [$canEdit, $lockReason] = EvaluationPolicy::canEditEvaluation($db, (int) $evaluationId, $role);
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - After edit window check: canEdit=" . ($canEdit ? 'true' : 'false') . ", reason=$lockReason\n", FILE_APPEND | LOCK_EX);
                 
                 if (!$canEdit) {
                     $db->rollBack();
@@ -777,69 +687,31 @@ class EvaluationController extends BaseController
                 }
             }
 
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - About to commit transaction\n", FILE_APPEND | LOCK_EX);
             $db->commit();
-            
-            $commitTime = date('Y-m-d H:i:s');
-            error_log("[$commitTime] DB COMMIT SUCCESSFUL, about to queue email");
-            @file_put_contents(__DIR__ . '/../../storage/debug_log.txt', "[$commitTime] DB COMMIT SUCCESSFUL\n", FILE_APPEND | LOCK_EX);
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - DB COMMIT SUCCESSFUL\n", FILE_APPEND | LOCK_EX);
-            
+
             // Queue email untuk dosen yang baru saja menginput nilai
             // Email sekarang di-queue dan akan diproses di background
-            @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Before email queuing block\n", FILE_APPEND | LOCK_EX);
             $emailQueued = false;
             $emailError = null;
             try {
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', date('Y-m-d H:i:s') . " - Inside email try block\n", FILE_APPEND | LOCK_EX);
-                $emailDebugTime = date('Y-m-d H:i:s');
-                error_log("[$emailDebugTime] EMAIL TRY BLOCK START: targetEvaluatorId=$targetEvaluatorId");
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', "[$emailDebugTime] EMAIL TRY BLOCK START: targetEvaluatorId=$targetEvaluatorId\n", FILE_APPEND | LOCK_EX);
-                
-                // Debug: Log sebelum call
-                DebugLog::log("TRY BLOCK START: targetEvaluatorId=$targetEvaluatorId");
-                
                 EventService::markEventCompletedIfScoresReady($db, (int) $studentId, $stage);
-                
-                error_log("[$emailDebugTime] AFTER markEventCompleted");
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', "[$emailDebugTime] AFTER markEventCompleted\n", FILE_APPEND | LOCK_EX);
-                DebugLog::log("AFTER markEventCompleted");
-                
+
                 EventService::queueEmailForLecturer($db, (int) $studentId, $stage, (int) $targetEvaluatorId);
-                
-                error_log("[$emailDebugTime] AFTER queueEmailForLecturer");
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', "[$emailDebugTime] AFTER queueEmailForLecturer\n", FILE_APPEND | LOCK_EX);
-                DebugLog::log("AFTER queueEmailForLecturer");
-                
+
                 $emailQueued = true;
-                
-                error_log("[$emailDebugTime] emailQueued SET TO TRUE");
-                @file_put_contents(__DIR__ . '/../../storage/logs/email_debug.log', "[$emailDebugTime] emailQueued SET TO TRUE\n", FILE_APPEND | LOCK_EX);
-                DebugLog::log("emailQueued SET TO TRUE");
-                
+
                 // Process email queue directly (more reliable than HTTP trigger)
                 try {
                     require_once __DIR__ . '/../services/EmailService.php';
                     $emailService = new EmailService($db);
                     $emailService->processQueue(5); // Process up to 5 pending emails
-                    DebugLog::log("Email queue processed successfully");
                 } catch (Exception $processEx) {
-                    // Log but don't fail the whole transaction
                     $processError = $processEx->getMessage();
                     error_log("Failed to process email queue: $processError");
-                    DebugLog::log("Email queue processing failed: $processError");
                 }
-                
             } catch (Throwable $emailEx) {
-                // Log error tapi jangan gagalkan proses simpan nilai
                 $emailError = $emailEx->getMessage();
-                $emailDebugTime = date('Y-m-d H:i:s');
-                error_log("[$emailDebugTime] EMAIL EXCEPTION: $emailError");
-                error_log("[$emailDebugTime] EXCEPTION TRACE: " . $emailEx->getTraceAsString());
-                @file_put_contents(__DIR__ . '/../storage/debug_log.txt', "[$emailDebugTime] EMAIL EXCEPTION: $emailError\n", FILE_APPEND | LOCK_EX);
-                @file_put_contents(__DIR__ . '/../storage/debug_log.txt', "[$emailDebugTime] EXCEPTION FILE: " . $emailEx->getFile() . " LINE: " . $emailEx->getLine() . "\n", FILE_APPEND | LOCK_EX);
-                DebugLog::log("EXCEPTION: $emailError");
-                // Jangan throw exception, biar proses simpan nilai lanjut
+                error_log("Email queue error: " . $emailError);
             }
 
             // Audit log
