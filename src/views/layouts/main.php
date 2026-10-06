@@ -63,7 +63,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <!-- Custom CSS -->
-    <link href="/assets/css/custom.css?v=20261006" rel="stylesheet">
+    <link href="/assets/css/custom.css?v=20261006b" rel="stylesheet">
 
     <!-- jQuery (loaded early for inline scripts) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -76,7 +76,6 @@
 
         .modern-navbar {
             background: linear-gradient(135deg, rgba(27, 39, 53, 0.94), rgba(47, 63, 82, 0.94));
-            backdrop-filter: saturate(180%) blur(8px);
             box-shadow: 0 12px 28px rgba(15, 23, 42, 0.2);
             border-bottom: 2px solid rgba(20, 184, 166, 0.45);
         }

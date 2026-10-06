@@ -36,7 +36,6 @@ body {
 /* Navbar styling */
 .navbar {
     background: linear-gradient(135deg, rgba(27, 39, 53, 0.94), rgba(47, 63, 82, 0.94)) !important;
-    backdrop-filter: saturate(180%) blur(8px);
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
     border-bottom: 2px solid rgba(20, 184, 166, 0.45);
 }
@@ -232,7 +231,7 @@ body {
     border: 1px solid rgba(15, 23, 42, 0.08);
     border-radius: 14px;
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-    transition: all 0.3s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     margin-bottom: 20px;
     background: #ffffff;
 }
@@ -545,7 +544,7 @@ body {
 
 /* Dashboard cards */
 .dashboard-card {
-    transition: all 0.3s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     border-radius: 14px;
     overflow: hidden;
     height: 100%;
