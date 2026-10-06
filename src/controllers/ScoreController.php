@@ -1618,9 +1618,14 @@ class ScoreController extends BaseController
                 $row[2] = htmlspecialchars($row[2] ?? '-'); // angkatan
                 // row[3] is status (already formatted by DataTablesHelper)
                 $row[4] = htmlspecialchars($row[4] ?? '-'); // semester_lulus
-                $row[5] = '<span class="badge bg-primary fs-6">' . number_format($finalScore, 2) . '</span> ' .
-                          '<span class="badge bg-success fs-6">' . htmlspecialchars($finalLetter) . '</span>' .
-                          ($hasBypass ? ' <span class="badge bg-warning text-dark"><i class="fas fa-forward"></i> Bypass</span>' : '');
+                $hasFinalScore = !empty($praUjianScores) || !empty($ujianScores);
+                if ($hasFinalScore) {
+                    $row[5] = '<span class="badge bg-primary fs-6">' . number_format($finalScore, 2) . '</span> ' .
+                              '<span class="badge bg-success fs-6">' . htmlspecialchars($finalLetter) . '</span>' .
+                              ($hasBypass ? ' <span class="badge bg-warning text-dark"><i class="fas fa-forward"></i> Bypass</span>' : '');
+                } else {
+                    $row[5] = '<span class="badge bg-secondary fs-6">Belum tersedia</span>';
+                }
                 $row[6] = htmlspecialchars($row[6] ?? '-'); // skripsi_title
                 // row[7] is the detail button (already set by DataTablesHelper)
                 // row[8] is the scoresDetail JSON for the expandable row
