@@ -1049,6 +1049,16 @@ class EvaluationController extends BaseController
             foreach ($roles as $roleKey) {
                 $lecturerId = isset($_POST[$roleKey]) ? (int) $_POST[$roleKey] : 0;
                 if ($lecturerId > 0) {
+                    // Skip if lecturer already assigned to another role for this student
+                    $conflictCheck = $db->prepare("SELECT role FROM assignments WHERE student_id = :student_id AND lecturer_id = :lecturer_id AND role != :role LIMIT 1");
+                    $conflictCheck->bindValue(':student_id', $studentId);
+                    $conflictCheck->bindValue(':lecturer_id', $lecturerId);
+                    $conflictCheck->bindValue(':role', $roleKey);
+                    $conflictCheck->execute();
+                    if ($conflictCheck->fetchColumn()) {
+                        continue;
+                    }
+
                     // Check if assignment exists
                     $checkAssign = $db->prepare("SELECT id FROM assignments WHERE student_id = :student_id AND role = :role");
                     $checkAssign->bindValue(':student_id', $studentId);

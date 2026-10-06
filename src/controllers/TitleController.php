@@ -1621,10 +1621,25 @@ class TitleController extends BaseController {
         $studentId = (int)$title['student_id'];
         foreach ($roleColumns as $role => $column) {
             $lecturerId = isset($title[$column]) ? (int)$title[$column] : null;
-            if ($lecturerId && !$this->assignmentExists($db, $studentId, $role)) {
-                $this->createAssignment($db, $studentId, $lecturerId, $role, $assignedBy);
+            if (!$lecturerId || $this->assignmentExists($db, $studentId, $role)) {
+                continue;
             }
+            if ($this->lecturerHasOtherRole($db, $studentId, $lecturerId, $role)) {
+                continue;
+            }
+            $this->createAssignment($db, $studentId, $lecturerId, $role, $assignedBy);
         }
+    }
+
+    private function lecturerHasOtherRole(PDO $db, int $studentId, int $lecturerId, string $role): bool
+    {
+        $query = "SELECT id FROM assignments WHERE student_id = :student_id AND lecturer_id = :lecturer_id AND role != :role LIMIT 1";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(':student_id', $studentId, PDO::PARAM_INT);
+        $stmt->bindParam(':lecturer_id', $lecturerId, PDO::PARAM_INT);
+        $stmt->bindParam(':role', $role);
+        $stmt->execute();
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     private function assignmentExists(PDO $db, int $studentId, string $role): bool {
