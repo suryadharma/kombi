@@ -72,7 +72,7 @@ $eventLabels = [
                             <tbody>
                                 <?php foreach ($upcomingEvents as $event): ?>
                                 <tr>
-                                    <td><strong><?= htmlspecialchars($event['nim']) ?></strong><br><?= htmlspecialchars($event['name']) ?></td>
+                                    <td><strong><?= htmlspecialchars($event['name']) ?></strong><br><?= htmlspecialchars($event['nim']) ?></td>
                                     <td><span class="badge bg-primary"><?= htmlspecialchars($eventLabels[$event['type']] ?? $event['type']) ?></span></td>
                                     <td><?= date('d M Y', strtotime($event['scheduled_date'])) . ' ' . substr($event['scheduled_time'], 0, 5) ?></td>
                                 </tr>
@@ -97,7 +97,7 @@ $eventLabels = [
                         <?php foreach ($pendingEvaluations as $item): ?>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
-                                <strong><?= htmlspecialchars($item['nim']) ?></strong> - <?= htmlspecialchars($item['name']) ?><br>
+                                <strong><?= htmlspecialchars($item['name']) ?></strong> - <?= htmlspecialchars($item['nim']) ?><br>
                                 <small class="text-muted">Tahap: <?= htmlspecialchars($eventLabels[$item['type']] ?? $item['type']) ?></small>
                             </div>
                             <span class="badge bg-warning text-dark">Butuh nilai</span>
