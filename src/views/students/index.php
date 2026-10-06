@@ -160,7 +160,7 @@ include VIEW_PATH . '/components/filter_bar.php';
                             </tbody>
                         </table>
                     </div>
-                    <button type="submit" class="btn btn-danger mt-3" id="bulkDeleteBtn" disabled>Hapus yang Dipilih</button>
+                    <button type="button" class="btn btn-danger mt-3" id="bulkDeleteBtn" disabled>Hapus yang Dipilih</button>
                 </form>
             </div>
         </div>
@@ -332,6 +332,33 @@ NIM,Nama,Angkatan,Semester Masuk,Status
     </div>
 </div>
 
+<!-- Modal Konfirmasi Hapus Massal -->
+<div class="modal fade" id="bulkDeleteConfirmModal" tabindex="-1" aria-labelledby="bulkDeleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkDeleteConfirmModalLabel">
+                    <i class="fas fa-exclamation-triangle text-danger"></i> Konfirmasi Hapus Massal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Anda akan menghapus <strong id="bulkDeleteCount">0</strong> mahasiswa yang dipilih.</p>
+                <p class="text-danger mb-0">
+                    <strong>Peringatan:</strong> seluruh data terkait (judul skripsi, nilai, jadwal, dan penetapan dosen)
+                    juga akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="bulkDeleteConfirmBtn">
+                    <i class="fas fa-trash"></i> Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php ob_start(); ?>
 document.addEventListener('DOMContentLoaded', function() {
     const filterForm = document.getElementById('studentFilterForm');
@@ -493,6 +520,39 @@ document.addEventListener('DOMContentLoaded', function() {
         $studentsTable.on('draw.dt', function () {
             syncMasterCheckboxes();
             updateBulkDeleteButton();
+        });
+    }
+
+    const bulkDeleteConfirmBtn = document.getElementById('bulkDeleteConfirmBtn');
+    const bulkDeleteCountEl = document.getElementById('bulkDeleteCount');
+    const bulkDeleteConfirmModalEl = document.getElementById('bulkDeleteConfirmModal');
+
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', function () {
+            if (bulkDeleteBtn.disabled) {
+                return;
+            }
+            const selectedCount = $(rowSelector + ':checked').length;
+            if (selectedCount === 0) {
+                return;
+            }
+            if (bulkDeleteCountEl) {
+                bulkDeleteCountEl.textContent = selectedCount;
+            }
+            if (bulkDeleteConfirmModalEl && window.bootstrap && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(bulkDeleteConfirmModalEl).show();
+            } else if (confirm('Hapus ' + selectedCount + ' mahasiswa yang dipilih beserta seluruh data terkaitnya?')) {
+                document.getElementById('bulkDeleteForm').requestSubmit();
+            }
+        });
+    }
+
+    if (bulkDeleteConfirmBtn) {
+        bulkDeleteConfirmBtn.addEventListener('click', function () {
+            const form = document.getElementById('bulkDeleteForm');
+            if (form) {
+                form.requestSubmit();
+            }
         });
     }
 

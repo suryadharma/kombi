@@ -45,7 +45,6 @@ class StudentController extends BaseController {
             'students' => [],
             'role' => $role,
             'angkatanList' => $angkatanList,
-            'scripts' => ['https://code.jquery.com/jquery-3.6.0.min.js'], // Explicitly load jQuery
             'search' => $search,
             'angkatan' => $angkatan,
             'status' => $status,
