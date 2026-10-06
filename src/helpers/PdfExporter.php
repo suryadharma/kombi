@@ -507,7 +507,7 @@ class PdfExporter
 
     private static function buildPdfFilename(array $student, string $stageCode, array $evaluations): string
     {
-        $segments = [];
+        $segments = ['nilai'];
         $nim = isset($student['nim']) ? (string) $student['nim'] : '';
         if ($nim !== '') {
             $segments[] = self::sanitizeFilenameSegment($nim);
@@ -526,7 +526,6 @@ class PdfExporter
             }
         }
 
-        $segments[] = 'nilai';
         $segments = array_values(array_filter($segments, fn($part) => $part !== ''));
         $filename = implode('-', $segments);
         if ($filename === '') {
