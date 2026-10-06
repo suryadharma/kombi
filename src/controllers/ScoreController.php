@@ -1484,6 +1484,8 @@ class ScoreController extends BaseController
                         e.final_score,
                         e.total_score,
                         e.evaluator_role,
+                        e.mode,
+                        e.evaluator_id,
                         u.name as evaluator_name,
                         a.role as assignment_role
                     FROM evaluations e
@@ -1580,37 +1582,33 @@ class ScoreController extends BaseController
                     }
                 }
 
-                // Build scores detail for JSON
+                // Build scores detail for JSON (only the current lecturer's own scores)
+                $ownOnly = function (array $scores) use ($lecturerId) {
+                    return array_values(array_filter($scores, function ($s) use ($lecturerId) {
+                        return (int)($s['evaluator_id'] ?? 0) === (int)$lecturerId;
+                    }));
+                };
+
+                $toDetail = function (array $scores, bool $includeBypass = false) {
+                    return array_map(function ($s) use ($includeBypass) {
+                        $detail = [
+                            'evaluator_name' => $s['evaluator_name'],
+                            'evaluator_role' => $s['evaluator_role'] ?? null,
+                            'assignment_role' => $s['assignment_role'] ?? null,
+                            'score' => ScoreHelper::normalize($s['final_score'])
+                        ];
+                        if ($includeBypass) {
+                            $detail['is_bypass'] = ($s['mode'] ?? '') === 'bypass';
+                        }
+                        return $detail;
+                    }, $scores);
+                };
+
                 $scoresDetail = [
-                    'sempro' => array_map(function($s) {
-                        return [
-                            'evaluator_name' => $s['evaluator_name'],
-                            'assignment_role' => $s['assignment_role'],
-                            'score' => ScoreHelper::normalize($s['final_score'])
-                        ];
-                    }, $semproScores),
-                    'semhas' => array_map(function($s) {
-                        return [
-                            'evaluator_name' => $s['evaluator_name'],
-                            'assignment_role' => $s['assignment_role'],
-                            'score' => ScoreHelper::normalize($s['final_score'])
-                        ];
-                    }, $semhasScores),
-                    'pra-ujian' => array_map(function($s) {
-                        return [
-                            'evaluator_name' => $s['evaluator_name'],
-                            'assignment_role' => $s['assignment_role'],
-                            'score' => ScoreHelper::normalize($s['final_score'])
-                        ];
-                    }, $praUjianScores),
-                    'ujian' => array_map(function($s) {
-                        return [
-                            'evaluator_name' => $s['evaluator_name'],
-                            'assignment_role' => $s['assignment_role'],
-                            'score' => ScoreHelper::normalize($s['final_score']),
-                            'is_bypass' => ($s['mode'] ?? '') === 'bypass'
-                        ];
-                    }, $ujianScores),
+                    'sempro' => $toDetail($ownOnly($semproScores)),
+                    'semhas' => $toDetail($ownOnly($semhasScores)),
+                    'pra-ujian' => $toDetail($ownOnly($praUjianScores)),
+                    'ujian' => $toDetail($ownOnly($ujianScores), true),
                 ];
 
                 // Replace row data with formatted output

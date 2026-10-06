@@ -108,20 +108,19 @@ function formatEvaluatorLabel(assignmentRole, evaluatorRole) {
 // Helper function to display scores
 function displayScores(stageLabel, scores, stageKey, studentId) {
     if (!scores || scores.length === 0) {
-        return '<tr><td>' + stageLabel + '</td><td colspan="4" class="text-muted">Tidak ada data nilai</td></tr>';
+        return '<tr><td>' + stageLabel + '</td><td colspan="2" class="text-muted">Tidak ada data nilai</td></tr>';
     }
     
     let html = '';
     scores.forEach(function(score, index) {
         const roleLabel = formatEvaluatorLabel(score.assignment_role, score.evaluator_role);
-        const displayValue = score.score !== null ? parseFloat(score.score).toFixed(2) : '-';
+        const displayValue = score.score !== null && score.score !== undefined ? parseFloat(score.score).toFixed(2) : '-';
+        const bypassBadge = score.is_bypass ? ' <span class="badge bg-warning text-dark"><i class="fas fa-forward"></i> Bypass</span>' : '';
         
         html += '<tr>';
         html += '<td>' + (index === 0 ? stageLabel : '') + '</td>';
-        html += '<td>' + score.evaluator_name + ' (' + roleLabel + ')</td>';
-        html += '<td><span class="badge bg-primary">' + displayValue + '</span></td>';
-        html += '<td><span class="text-muted">-</span></td>';
-        html += '<td><small class="text-muted">Nilai yang Anda berikan</small></td>';
+        html += '<td>' + roleLabel + '</td>';
+        html += '<td><span class="badge bg-primary">' + displayValue + '</span>' + bypassBadge + '</td>';
         html += '</tr>';
     });
     return html;
@@ -138,7 +137,7 @@ function renderDetailRow(studentId, detailData) {
     // Scores table
     html += '<div class="mb-4">';
     html += '<table class="table table-sm table-bordered mb-0">';
-    html += '<thead class="table-light"><tr><th>Tahap</th><th>Penguji</th><th>Nilai</th><th>Aksi</th><th>Detail</th></tr></thead>';
+    html += '<thead class="table-light"><tr><th>Tahap</th><th>Peran</th><th>Nilai</th></tr></thead>';
     html += '<tbody>';
     html += displayScores('Seminar Proposal', scores.sempro || [], 'sempro', studentId);
     html += displayScores('Seminar Hasil', scores.semhas || [], 'semhas', studentId);
