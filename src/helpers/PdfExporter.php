@@ -206,10 +206,8 @@ class PdfExporter
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
-        header('Content-Type: application/pdf');
         $downloadName = self::buildPdfFilename($student, $stageCode, $evaluations);
-        header('Content-Disposition: attachment; filename="' . $downloadName . '"');
-        $pdf->Output('I');
+        $pdf->Output('D', $downloadName);
     }
 
     public static function outputFinalThesisScore(array $student, array $scoreData, ?array $chairperson = null): void
@@ -360,9 +358,7 @@ class PdfExporter
 
         // Output
         $downloadName = 'nilai-akhir-' . preg_replace('/[^a-z0-9]/i', '-', $student['nim']) . '.pdf';
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . $downloadName . '"');
-        $pdf->Output('I');
+        $pdf->Output('D', $downloadName);
     }
 
     private static function renderStageIntro(KombiPDF $pdf, array $stage, array $student, ?array $schedule): void
