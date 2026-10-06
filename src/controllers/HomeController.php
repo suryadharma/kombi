@@ -222,7 +222,7 @@ class HomeController extends BaseController
         $shortcuts = [
             ['title' => 'Kelola Mahasiswa', 'icon' => 'fa-user-graduate', 'description' => 'Tambah, ubah, atau impor data mahasiswa', 'url' => '/students', 'variant' => 'primary'],
             ['title' => 'Penetapan Dosen', 'icon' => 'fa-people-arrows', 'description' => 'Atur pembimbing dan penguji secara cepat', 'url' => '/assignments/set', 'variant' => 'success'],
-            ['title' => 'Monitoring Tahap', 'icon' => 'fa-route', 'description' => 'Pantau progres seminar & ujian setiap mahasiswa', 'url' => '/students/progress', 'variant' => 'info'],
+            ['title' => 'Monitoring Tahap', 'icon' => 'fa-route', 'description' => 'Pantau progres seminar & ujian setiap mahasiswa', 'url' => '/reports/tracking', 'variant' => 'info'],
             ['title' => 'Laporan Cepat', 'icon' => 'fa-chart-pie', 'description' => 'Akses laporan masa studi, SLA, dan beban dosen', 'url' => '/reports', 'variant' => 'warning'],
             ['title' => 'Pengaturan Angkatan', 'icon' => 'fa-cog', 'description' => 'Atur angkatan yang sedang aktif', 'url' => '/settings', 'variant' => 'secondary']
         ];

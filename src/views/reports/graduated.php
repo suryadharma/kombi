@@ -126,12 +126,13 @@ include VIEW_PATH . '/components/filter_bar.php';
                                 <th>Sem. Masuk</th>
                                 <th>Sem. Lulus</th>
                                 <th>Masa Studi</th>
+                                <th>Nilai Akhir</th>
                                 <th>Detail</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="7" class="text-center">Memuat data...</td>
+                                <td colspan="8" class="text-center">Memuat data...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -289,6 +290,20 @@ $(document).ready(function() {
             { data: 3 },
             { data: 4 },
             { data: 5 },
+            {
+                data: null,
+                defaultContent: '',
+                orderable: false,
+                searchable: false,
+                render: function(data, type, row) {
+                    var finalScore = (row.detailData && row.detailData.final_score) || {};
+                    if (finalScore.value !== null && finalScore.value !== undefined) {
+                        return '<span class="badge bg-primary fs-6">' + parseFloat(finalScore.value).toFixed(2) + '</span> ' +
+                               '<span class="badge bg-success fs-6">' + (finalScore.letter || '-') + '</span>';
+                    }
+                    return '<span class="badge bg-secondary fs-6">Belum tersedia</span>';
+                }
+            },
             { 
                 data: 6,
                 render: function(data, type, row) {
@@ -300,7 +315,7 @@ $(document).ready(function() {
             { data: 8, visible: false }
         ],
         columnDefs: [
-            { targets: 6, orderable: false }
+            { targets: 7, orderable: false }
         ],
         drawCallback: function(settings) {
             // Re-attach collapse handlers after each draw
@@ -319,7 +334,7 @@ $(document).ready(function() {
                     if ($detailRow.length === 0) {
                         // Create detail row
                         const detailHtml = renderDetailRow(studentId, row.data().detailData || {});
-                        $detailRow = $('<tr class="detail-row"><td colspan="7" class="p-0">' + detailHtml + '</td></tr>');
+                        $detailRow = $('<tr class="detail-row"><td colspan="8" class="p-0">' + detailHtml + '</td></tr>');
                         $tr.after($detailRow);
                         // Show the collapse
                         const $collapse = $detailRow.find('.collapse');

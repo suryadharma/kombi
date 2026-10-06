@@ -21,21 +21,6 @@ class ReportController extends BaseController
         }
     }
 
-    /**
-     * Test endpoint for debugging
-     */
-    public function testData()
-    {
-        header('Content-Type: application/json');
-        echo json_encode([
-            'draw' => 1,
-            'recordsTotal' => 1,
-            'recordsFiltered' => 1,
-            'data' => [['Test', 'Data', 'Row']]
-        ]);
-        exit;
-    }
-
     private function ensureAccess()
     {
         $this->requireAuth();
@@ -167,22 +152,6 @@ class ReportController extends BaseController
             'stageLabels' => $stageLabels,
             'stageFilter' => $selectedStage,
             'selectedAngkatan' => $selectedAngkatan,
-            'currentSearch' => $searchFilter
-        ]));
-    }
-
-    public function summary()
-    {
-        $this->ensureAccess();
-
-        $angkatanFilter = isset($_GET['angkatan']) && $_GET['angkatan'] !== '' ? (int) $_GET['angkatan'] : null;
-        $searchFilter = trim($_GET['student_search'] ?? '');
-
-        $data = $this->reportService->getSummaryData($angkatanFilter, $searchFilter);
-
-        $this->render('reports/summary', array_merge($data, [
-            'activeTab' => 'summary',
-            'selectedAngkatan' => $angkatanFilter,
             'currentSearch' => $searchFilter
         ]));
     }
@@ -483,38 +452,6 @@ class ReportController extends BaseController
             // Use student_search parameter from form (not DataTables' built-in search)
             $searchFilter = isset($_GET['student_search']) ? trim($_GET['student_search']) : '';
             $result = $this->reportService->getGraduatedDataServerSide($request, $angkatanFilter, $searchFilter);
-            ob_end_clean();
-            header('Content-Type: application/json');
-            echo $result;
-        } catch (Exception $e) {
-            ob_end_clean();
-            header('Content-Type: application/json');
-            echo json_encode([
-                'draw' => isset($request['draw']) ? (int)$request['draw'] : 1,
-                'recordsTotal' => 0,
-                'recordsFiltered' => 0,
-                'data' => [],
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-        }
-        exit;
-    }
-
-    /**
-     * AJAX endpoint for server-side DataTables processing - Summary report
-     */
-    public function summaryData()
-    {
-        ob_start();
-        try {
-            $this->ensureAccess();
-            $request = $_GET;
-            $angkatanFilter = isset($_GET['angkatan']) && $_GET['angkatan'] !== '' ? (int) $_GET['angkatan'] : null;
-            // Use student_search parameter from form (not DataTables' built-in search)
-            $searchFilter = isset($_GET['student_search']) ? trim($_GET['student_search']) : '';
-            $result = $this->reportService->getSummaryDataServerSide($request, $angkatanFilter, $searchFilter);
             ob_end_clean();
             header('Content-Type: application/json');
             echo $result;

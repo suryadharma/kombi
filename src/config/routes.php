@@ -18,7 +18,6 @@ $routes = [
     '/students/store' => 'StudentController@store',
     '/students/import' => 'StudentImportController@importForm',
     '/students/bulk-delete' => 'StudentController@bulkDelete',
-    '/students/progress' => 'StudentController@progress',
     '/students/assignment-status' => 'StudentController@assignmentStatus',
     '/students/([^/]+)' => 'StudentController@show',
     '/students/([^/]+)/edit' => 'StudentController@edit',
@@ -86,7 +85,6 @@ $routes = [
     // Score routes
     '/scores/submit' => 'ScoreController@submit',
     '/scores/recap' => 'ScoreController@recap',
-    '/scores/recap/data' => 'ScoreController@recapData',
     '/scores/lecturer-recap' => 'ScoreController@lecturerRecap',
     '/scores/lecturer-recap/data' => 'ScoreController@lecturerRecapData',
     '/scores/export/([^/]+)/final' => 'ScoreController@exportFinalThesisScore',
@@ -128,10 +126,6 @@ $routes = [
     '/reports/sla/data' => 'ReportController@slaData',
     '/reports/bypass' => 'ReportController@bypassReport',
     '/reports/bypass/data' => 'ReportController@bypassData',
-    '/reports/duration' => 'ReportController@studyPeriod',
-    '/reports/summary' => 'ReportController@summary',
-    '/reports/summary/data' => 'ReportController@summaryData',
-    '/reports/test' => 'ReportController@testData',
     '/reports' => 'ReportController@studyPeriod',
 
     // Settings routes

@@ -329,18 +329,12 @@
                                     'icon' => 'fas fa-edit',
                                     'url' => '/scores/submit',
                                 ],
-                                [
-                                    'label' => 'Rekap Nilai',
-                                    'desc' => 'Rekap nilai mahasiswa lulus',
-                                    'icon' => 'fas fa-clipboard-list',
-                                    'url' => '/scores/recap',
-                                ],
                             ],
                         ],
                         [
                             'title' => 'Laporan & Monitoring',
                             'icon' => 'fas fa-chart-pie',
-                            'patterns' => ['/reports/*', '/students/progress', '/timeline', '/students/assignment-status'],
+                            'patterns' => ['/reports/*', '/timeline', '/students/assignment-status'],
                             'items' => [
                                 [
                                     'label' => 'Masa Studi',

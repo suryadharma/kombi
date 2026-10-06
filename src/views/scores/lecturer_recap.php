@@ -12,8 +12,6 @@ $role = $role ?? '';
     </div>
 </div>
 
-<?php include __DIR__ . '/_nav.php'; ?>
-
 <?php
 $angkatanOptions = [['value' => '', 'label' => 'Semua Angkatan']];
 foreach ($angkatanList as $angkatan) {
