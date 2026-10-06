@@ -137,11 +137,11 @@
                 if($col >= $this->rsblocks[0]->dataLength) {
                     $row += $this->b1;
                 }
-                $ret = $this->rsblocks[$row]->data[$col];
+                $ret = $this->rsblocks[$row]->data[(int)$col];
             } else if($this->count < $this->dataLength + $this->eccLength) {
                 $row = ($this->count - $this->dataLength) % $this->blocks;
                 $col = ($this->count - $this->dataLength) / $this->blocks;
-                $ret = $this->rsblocks[$row]->ecc[$col];
+                $ret = $this->rsblocks[$row]->ecc[(int)$col];
             } else {
                 return 0;
             }
@@ -422,6 +422,7 @@
         
         public $level = QR_ECLEVEL_L;
         public $hint = QR_MODE_8;
+        public $cmyk = false;
         
         //----------------------------------------------------------------------
         public static function factory($level = QR_ECLEVEL_L, $size = 3, $margin = 4, $back_color = 0xFFFFFF, $fore_color = 0x000000, $cmyk = false)
