@@ -34,6 +34,7 @@ foreach ($currentAssignments as $assignment) {
         
 <div class="mb-4">
     <h6>Dosen Saat Ini:</h6>
+    <div class="table-responsive">
     <table class="table table-sm">
         <?php foreach ($roleLabels as $roleKey => $roleLabel): ?>
             <tr>
@@ -48,6 +49,7 @@ foreach ($currentAssignments as $assignment) {
             </tr>
         <?php endforeach; ?>
     </table>
+    </div>
 </div>
 
 <form method="POST" action="/assignments/change/<?= $student['id'] ?>">

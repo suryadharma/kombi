@@ -94,9 +94,14 @@ $paramKeyMap = ['id', 'stage', 'event_id'];
  * Dispatch a controller method with appropriate parameters.
  */
 function dispatchRoute($controllerName, $method, $matches = [], $paramKeyMap = []) {
-    // Log dispatch attempt
+    global $debugMode;
+
+    // Log dispatch attempt (only when debug mode is enabled)
     $logFile = __DIR__ . '/../storage/debug_log.txt';
-    $log = function($msg) use ($logFile) {
+    $log = function($msg) use ($logFile, $debugMode) {
+        if (!$debugMode) {
+            return;
+        }
         @file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] DISPATCH: {$msg}\n", FILE_APPEND | LOCK_EX);
     };
     

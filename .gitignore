@@ -32,11 +32,8 @@ build/
 *.tmp
 *.cache
 
-# Uploads & storage (keep structure if needed)
-/storage/backups_mirror/
-/storage/backups/
-/storage/uploads/
-!storage/.gitkeep
+# Runtime storage (logs, backups, uploads, temp)
+/storage/
 
 # Docker volumes/local data
 docker-compose.override.yml
@@ -46,5 +43,4 @@ docker-compose.override.yml
 .vscode/
 
 # User uploads in src if any
-src/storage/uploads/
-src/storage/backups/
+/src/storage/

@@ -11,6 +11,7 @@
                 <h5>Informasi Mahasiswa</h5>
             </div>
             <div class="card-body">
+                <div class="table-responsive">
                 <table class="table">
                     <tr>
                         <th>NIM</th>
@@ -60,6 +61,7 @@
                         </td>
                     </tr>
                 </table>
+                </div>
             </div>
         </div>
         
@@ -71,6 +73,7 @@
                 <?php endif; ?>
             </div>
             <div class="card-body">
+                <div class="table-responsive">
                 <table class="table">
                     <tr>
                         <th>Pembimbing 1</th>
@@ -93,6 +96,7 @@
                         <td><?= htmlspecialchars($assignments['penguji_3'] ?? '-') ?></td>
                     </tr>
                 </table>
+                </div>
             </div>
         </div>
     </div>

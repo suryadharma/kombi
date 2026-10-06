@@ -339,18 +339,93 @@ class HomeController extends BaseController
                     $evalMap[$key] = true;
                 }
                 
-                // Check pending evaluations using the map instead of queries
+                // Batch-fetch latest event per (student, type) instead of N+1 queries
+                $latestEventMap = [];
+                $eventStages = array_filter($stages, static function ($stage) {
+                    return $stage !== 'pra-ujian';
+                });
+                $eventTypes = [];
+                foreach ($eventStages as $stage) {
+                    $eventTypes[] = $stageToEventType[$stage] ?? strtoupper($stage);
+                }
+                if (!empty($eventTypes)) {
+                    $eventTypePlaceholders = implode(',', array_fill(0, count($eventTypes), '?'));
+                    $eventsQuery = "SELECT student_id, type, scheduled_date, scheduled_time
+                                    FROM events
+                                    WHERE student_id IN ($studentPlaceholders)
+                                      AND type IN ($eventTypePlaceholders)
+                                    ORDER BY scheduled_date DESC, scheduled_time DESC";
+                    $eventsStmt = $db->prepare($eventsQuery);
+                    $eventsStmt->execute(array_merge($studentIds, $eventTypes));
+                    foreach ($eventsStmt->fetchAll(PDO::FETCH_ASSOC) as $ev) {
+                        $key = $ev['student_id'] . ':' . $ev['type'];
+                        if (!isset($latestEventMap[$key])) {
+                            $latestEventMap[$key] = $ev;
+                        }
+                    }
+                }
+
+                // Batch-fetch pra-ujian prerequisites (pembimbing role + semhas score)
+                $pembimbingMap = [];
+                $semhasScoreSet = [];
+                if (in_array('pra-ujian', $stages, true)) {
+                    $assignmentQuery = "SELECT student_id, role FROM assignments
+                                        WHERE lecturer_id = ?
+                                          AND student_id IN ($studentPlaceholders)";
+                    $assignmentStmt = $db->prepare($assignmentQuery);
+                    $assignmentStmt->execute(array_merge([$userId], $studentIds));
+                    foreach ($assignmentStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                        if (strpos((string)$row['role'], 'pembimbing') !== false) {
+                            $pembimbingMap[(int)$row['student_id']] = true;
+                        }
+                    }
+
+                    $semhasQuery = "SELECT DISTINCT student_id FROM evaluations
+                                    WHERE student_id IN ($studentPlaceholders)
+                                      AND stage = 'semhas'
+                                      AND evaluator_role = 'dosen_pembimbing'
+                                      AND final_score IS NOT NULL";
+                    $semhasStmt = $db->prepare($semhasQuery);
+                    $semhasStmt->execute($studentIds);
+                    foreach ($semhasStmt->fetchAll(PDO::FETCH_COLUMN) as $sid) {
+                        $semhasScoreSet[(int)$sid] = true;
+                    }
+                }
+
+                $now = new DateTimeImmutable('now');
+
+                // Check pending evaluations using the pre-fetched maps
                 foreach ($students as $student) {
-                    foreach ($stageMap[$role] as $stage) {
-                        [$allowed] = EvaluationPolicy::checkStageAccess($db, (int) $student['id'], $stage, $role, $userId);
+                    $sid = (int) $student['id'];
+                    foreach ($stages as $stage) {
+                        $allowed = true;
+
+                        if ($stage === 'pra-ujian') {
+                            $allowed = isset($pembimbingMap[$sid]) && isset($semhasScoreSet[$sid]);
+                        } else {
+                            $eventType = $stageToEventType[$stage] ?? strtoupper($stage);
+                            $event = $latestEventMap[$sid . ':' . $eventType] ?? null;
+                            if ($event === null) {
+                                $allowed = false;
+                            } else {
+                                $date = $event['scheduled_date'] ?? null;
+                                $time = $event['scheduled_time'] ?? '00:00:00';
+                                $dateTimeString = trim($date . ' ' . $time);
+                                $dateTime = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $dateTimeString) ?:
+                                            DateTimeImmutable::createFromFormat('Y-m-d H:i', $dateTimeString) ?:
+                                            DateTimeImmutable::createFromFormat('Y-m-d', $date);
+                                $allowed = ($dateTime !== false) && ($dateTime <= $now);
+                            }
+                        }
+
                         if (!$allowed) {
                             continue;
                         }
 
-                        $key = $student['id'] . ':' . $stage;
+                        $key = $sid . ':' . $stage;
                         if (!isset($evalMap[$key])) {
                             $pendingEvaluations[] = [
-                                'student_id' => (int) $student['id'],
+                                'student_id' => $sid,
                                 'nim' => $student['nim'],
                                 'name' => $student['name'],
                                 'stage' => $stage,

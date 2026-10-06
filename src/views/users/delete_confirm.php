@@ -18,6 +18,7 @@ $roleLabels = $roleLabels ?? [];
 
                 <p>Anda akan menghapus pengguna berikut:</p>
 
+                <div class="table-responsive">
                 <table class="table table-bordered table-sm">
                     <tr>
                         <th style="width: 30%">Username</th>
@@ -36,6 +37,7 @@ $roleLabels = $roleLabels ?? [];
                         </td>
                     </tr>
                 </table>
+                </div>
 
                 <p class="text-muted small mb-3">
                     <i class="fas fa-info-circle"></i>

@@ -89,7 +89,7 @@ body {
 }
 
 /* Responsive navbar adjustments for medium screens */
-@media (min-width: 992px) and (max-width: 1199px) {
+@media (min-width: 1200px) and (max-width: 1399px) {
     .navbar.navbar-dark .navbar-nav .nav-link,
     .navbar-nav .nav-link {
         padding: 0.55rem 0.65rem;
@@ -107,7 +107,7 @@ body {
 }
 
 /* Extra responsive adjustments for smaller medium screens */
-@media (min-width: 992px) and (max-width: 1099px) {
+@media (min-width: 1200px) and (max-width: 1299px) {
     .navbar.navbar-dark .navbar-nav .nav-link,
     .navbar-nav .nav-link {
         padding: 0.45rem 0.55rem;
@@ -126,7 +126,7 @@ body {
 }
 
 /* Ensure navbar doesn't overflow on small desktop screens */
-@media (min-width: 992px) {
+@media (min-width: 1200px) {
     .navbar-collapse {
         max-height: none !important;
     }
@@ -137,6 +137,14 @@ body {
     
     .nav-item {
         flex-shrink: 0;
+    }
+}
+
+/* Keep admin dropdown within viewport on collapsed (hamburger) navbar */
+@media (max-width: 1199.98px) {
+    .dropdown-menu-admin {
+        min-width: 0 !important;
+        max-width: calc(100vw - 2rem);
     }
 }
 

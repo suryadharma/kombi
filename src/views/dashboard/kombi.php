@@ -137,7 +137,7 @@ $activeAngkatan = Settings::getActiveAngkatan();
 <div class="row">
     <?php if (!empty($summaryCards)): ?>
         <?php foreach ($summaryCards as $card): ?>
-        <div class="col-md-6 col-lg-4 col-xl-2-4 mb-3">
+        <div class="col-md-6 col-lg-4 col-xl mb-3">
             <div class="card border-0 shadow-sm h-100 summary-card summary-card-<?= htmlspecialchars($card['variant']) ?>">
                 <div class="card-body text-center">
                     <div class="d-flex justify-content-center mb-2">
@@ -164,7 +164,7 @@ $activeAngkatan = Settings::getActiveAngkatan();
 <div class="row mb-4">
     <?php if (!empty($shortcuts)): ?>
         <?php foreach ($shortcuts as $shortcut): ?>
-        <div class="col-md-6 col-lg-4 col-xl-2-4 mb-3">
+        <div class="col-md-6 col-lg-4 col-xl mb-3">
             <a href="<?= htmlspecialchars($shortcut['url']) ?>" class="text-decoration-none">
                 <div class="card border-0 shadow-sm h-100 bg-<?= htmlspecialchars($shortcut['variant']) ?> text-white shortcut-card">
                     <div class="card-body text-center">

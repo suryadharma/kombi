@@ -62,6 +62,7 @@ $examinerRoles = ['penguji_1', 'penguji_2', 'penguji_3'];
                 <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i>Dosen Pembimbing & Penguji</h5>
             </div>
             <div class="card-body p-0">
+                <div class="table-responsive">
                 <table class="table table-striped mb-0">
                     <thead class="table-light">
                         <tr>
@@ -152,6 +153,7 @@ $examinerRoles = ['penguji_1', 'penguji_2', 'penguji_3'];
                         <?php endif; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>

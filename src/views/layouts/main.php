@@ -63,7 +63,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <!-- Custom CSS -->
-    <link href="/assets/css/custom.css?v=20250210" rel="stylesheet">
+    <link href="/assets/css/custom.css?v=20261006" rel="stylesheet">
 
     <!-- jQuery (loaded early for inline scripts) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -239,7 +239,7 @@
 
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark modern-navbar sticky-top">
+    <nav class="navbar navbar-expand-xl navbar-dark modern-navbar sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="/dashboard">
                 <i class="fas fa-graduation-cap"></i> KOMBI
