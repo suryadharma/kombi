@@ -208,7 +208,7 @@ class PdfExporter
         }
         header('Content-Type: application/pdf');
         $downloadName = self::buildPdfFilename($student, $stageCode, $evaluations);
-        header('Content-Disposition: inline; filename="' . $downloadName . '"');
+        header('Content-Disposition: attachment; filename="' . $downloadName . '"');
         $pdf->Output('I');
     }
 
@@ -361,7 +361,7 @@ class PdfExporter
         // Output
         $downloadName = 'nilai-akhir-' . preg_replace('/[^a-z0-9]/i', '-', $student['nim']) . '.pdf';
         header('Content-Type: application/pdf');
-        header('Content-Disposition: inline; filename="' . $downloadName . '"');
+        header('Content-Disposition: attachment; filename="' . $downloadName . '"');
         $pdf->Output('I');
     }
 
