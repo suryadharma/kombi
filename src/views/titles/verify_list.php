@@ -79,27 +79,6 @@ include VIEW_PATH . '/components/filter_bar.php';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (empty($titles)): ?>
-                            <tr>
-                                <td><span class="text-muted">-</span></td>
-                                <td><span class="text-muted">-</span></td>
-                                <td><span class="text-muted">-</span></td>
-                                <td colspan="3" class="text-center">Tidak ada judul yang perlu diverifikasi</td>
-                            </tr>
-                            <?php else: ?>
-                            <?php foreach ($titles as $title): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($title['nim']) ?></td>
-                                <td><?= htmlspecialchars($title['student_name']) ?></td>
-                                <td><?= htmlspecialchars($title['angkatan']) ?></td>
-                                <td><?= htmlspecialchars(substr($title['title'], 0, 50)) ?>...</td>
-                                <td><?= date('d M Y H:i', strtotime($title['submitted_at'])) ?></td>
-                                <td>
-                                    <a href="/titles/verify/<?= $title['id'] ?>" class="btn btn-sm btn-primary">Verifikasi</a>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -118,9 +97,33 @@ document.addEventListener('DOMContentLoaded', function() {
             language: {
                 url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
             },
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/titles/verify/data',
+                data: function(d) {
+                    d.search = <?= json_encode($currentSearch ?? '') ?>;
+                    d.angkatan = <?= json_encode($currentAngkatan ?? '') ?>;
+                }
+            },
             pageLength: 25,
             order: [[4, 'desc']],
             lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+            searching: false,
+            columns: [
+                { data: 'nim' },
+                { data: 'student_name' },
+                { data: 'angkatan' },
+                { data: 'title', render: function(data) { return data ? data.substring(0, 50) + (data.length > 50 ? '...' : '') : ''; } },
+                { data: 'submitted_at', render: function(data) {
+                    var d = new Date(data.replace(' ', 'T'));
+                    if (isNaN(d.getTime())) return data;
+                    return ('0'+d.getDate()).slice(-2) + ' ' + ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()] + ' ' + d.getFullYear() + ' ' + ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+                } },
+                { data: 'id', orderable: false, searchable: false, render: function(data) {
+                    return '<a href="/titles/verify/' + data + '" class="btn btn-sm btn-primary">Verifikasi</a>';
+                } }
+            ],
             columnDefs: [
                 { width: "15%", targets: 0 },
                 { width: "20%", targets: 1 },
@@ -130,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 { width: "10%", targets: 5 }
             ],
             autoWidth: false,
-            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+            dom: 'lrtip'
         });
         
         // Handle DataTables errors

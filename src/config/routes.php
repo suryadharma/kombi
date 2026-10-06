@@ -59,8 +59,10 @@ $routes = [
     // Title routes
     '/titles/submit' => 'TitleController@submit',
     '/titles/verify' => 'TitleController@verify',
+    '/titles/verify/data' => 'TitleController@verifyData',
     '/titles/verify/([^/]+)' => 'TitleController@verifyDetail',
     '/titles/view' => 'TitleController@view',
+    '/titles/view/data' => 'TitleController@viewData',
     '/titles/view/([^/]+)' => 'TitleController@viewDetail',
     '/titles/([^/]+)/edit' => 'TitleController@edit',
     '/titles/([^/]+)/update' => 'TitleController@update',

@@ -337,63 +337,10 @@ class TitleController extends BaseController {
             // Get filter parameters
             $search = trim($_GET['search'] ?? '');
             $angkatan = trim($_GET['angkatan'] ?? '');
-            $hideApproved = $_GET['hide_approved'] ?? '1';
-            $hideApproved = ($hideApproved === '0') ? false : true;
             $activeAngkatan = Settings::getActiveAngkatan();
             if ($angkatan !== '' && !empty($activeAngkatan) && !in_array((int)$angkatan, $activeAngkatan, true)) {
                 $angkatan = '';
             }
-
-            // Build query with filters
-            $query = "SELECT t.*, s.nim, s.name as student_name, s.angkatan, s.status AS student_status,
-                             u.name as verified_by_name
-                      FROM titles t
-                      JOIN students s ON t.student_id = s.id
-                      LEFT JOIN users u ON t.verified_by = u.id
-                      WHERE t.status = 'MENUNGGU'";
-
-            $activePlaceholders = [];
-            if (!empty($activeAngkatan)) {
-                foreach ($activeAngkatan as $index => $value) {
-                    $placeholder = ':active_' . $index;
-                    $activePlaceholders[$placeholder] = (int)$value;
-                }
-                if (!empty($activePlaceholders)) {
-                    $query .= " AND s.angkatan IN (" . implode(',', array_keys($activePlaceholders)) . ")";
-                }
-            }
-
-            if (!empty($search)) {
-                $query .= " AND (s.nim LIKE :search OR s.name LIKE :search)";
-            }
-
-            if (!empty($angkatan)) {
-                $query .= " AND s.angkatan = :angkatan";
-            }
-
-            if ($hideApproved) {
-                $query .= " AND t.status != 'DITERIMA'";
-            }
-
-            $query .= " ORDER BY t.submitted_at DESC";
-
-            $stmt = $db->prepare($query);
-
-            foreach ($activePlaceholders as $placeholder => $value) {
-                $stmt->bindValue($placeholder, $value, PDO::PARAM_INT);
-            }
-
-            if (!empty($search)) {
-                $searchParam = "%{$search}%";
-                $stmt->bindValue(':search', $searchParam);
-            }
-
-            if (!empty($angkatan)) {
-                $stmt->bindValue(':angkatan', $angkatan, PDO::PARAM_INT);
-            }
-
-            $stmt->execute();
-            $titles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (!empty($activeAngkatan)) {
                 $angkatanList = array_values($activeAngkatan);
@@ -404,10 +351,10 @@ class TitleController extends BaseController {
                 $angkatanStmt->execute();
                 $angkatanList = $angkatanStmt->fetchAll(PDO::FETCH_COLUMN);
             }
-            
-            // Show verification list
+
+            // Show verification list (table loaded server-side)
             $this->render('titles/verify_list', [
-                'titles' => $titles,
+                'titles' => [],
                 'angkatanList' => $angkatanList,
                 'currentSearch' => $search,
                 'currentAngkatan' => $angkatan
@@ -417,6 +364,81 @@ class TitleController extends BaseController {
         }
     }
     
+    public function verifyData() {
+        $this->requireAuth();
+
+        $role = $this->getUserRole();
+        if ($role !== 'kombi' && $role !== 'superadmin') {
+            $this->jsonResponse(['draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []], 403);
+            return;
+        }
+
+        $draw = isset($_GET['draw']) ? (int)$_GET['draw'] : 1;
+        $start = isset($_GET['start']) ? max(0, (int)$_GET['start']) : 0;
+        $length = isset($_GET['length']) ? (int)$_GET['length'] : 25;
+        if ($length < 0) {
+            $length = 100000;
+        }
+
+        $search = trim((string)($_GET['search'] ?? ''));
+        $angkatan = trim((string)($_GET['angkatan'] ?? ''));
+        $activeAngkatan = Settings::getActiveAngkatan();
+
+        $base = "t.status = 'MENUNGGU'";
+        $baseParams = [];
+        if (!empty($activeAngkatan)) {
+            $ph = implode(',', array_fill(0, count($activeAngkatan), '?'));
+            $base .= " AND s.angkatan IN ($ph)";
+            foreach ($activeAngkatan as $a) {
+                $baseParams[] = (int)$a;
+            }
+        }
+
+        $extra = '';
+        $extraParams = [];
+        if ($angkatan !== '' && (empty($activeAngkatan) || in_array((int)$angkatan, $activeAngkatan, true))) {
+            $extra .= " AND s.angkatan = ?";
+            $extraParams[] = (int)$angkatan;
+        }
+        if ($search !== '') {
+            $extra .= " AND (s.nim LIKE ? OR s.name LIKE ?)";
+            $kw = "%{$search}%";
+            $extraParams[] = $kw;
+            $extraParams[] = $kw;
+        }
+
+        $from = "FROM titles t JOIN students s ON t.student_id = s.id LEFT JOIN users u ON t.verified_by = u.id";
+
+        $totalStmt = $this->db->prepare("SELECT COUNT(*) $from WHERE $base");
+        $totalStmt->execute($baseParams);
+        $recordsTotal = (int)$totalStmt->fetchColumn();
+
+        $allParams = array_merge($baseParams, $extraParams);
+        $filteredStmt = $this->db->prepare("SELECT COUNT(*) $from WHERE $base$extra");
+        $filteredStmt->execute($allParams);
+        $recordsFiltered = (int)$filteredStmt->fetchColumn();
+
+        $orderable = [0 => 's.nim', 1 => 's.name', 2 => 's.angkatan', 3 => 't.title', 4 => 't.submitted_at'];
+        $orderCol = isset($_GET['order'][0]['column']) ? (int)$_GET['order'][0]['column'] : 4;
+        $orderDir = strtoupper((string)($_GET['order'][0]['dir'] ?? 'DESC'));
+        if (!in_array($orderDir, ['ASC', 'DESC'], true)) {
+            $orderDir = 'DESC';
+        }
+        $orderField = $orderable[$orderCol] ?? 't.submitted_at';
+        $orderSql = "ORDER BY $orderField $orderDir, t.id ASC";
+
+        $stmt = $this->db->prepare("SELECT t.id, t.title, t.status, t.submitted_at, s.nim, s.name AS student_name, s.angkatan, s.status AS student_status, u.name AS verified_by_name $from WHERE $base$extra $orderSql LIMIT $length OFFSET $start");
+        $stmt->execute($allParams);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->jsonResponse([
+            'draw' => $draw,
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data
+        ]);
+    }
+
     public function verifyDetail($params) {
         // Require authentication
         $this->requireAuth();
@@ -566,81 +588,45 @@ class TitleController extends BaseController {
                 $angkatan = '';
             }
 
-            // Get waiting titles (MENUNGGU) - no filters applied
-            $waitingQuery = "SELECT t.*, s.nim, s.name as student_name, s.angkatan, s.status AS student_status,
-                                    u.name as verified_by_name
-                             FROM titles t
-                             JOIN students s ON t.student_id = s.id
-                             LEFT JOIN users u ON t.verified_by = u.id
-                             WHERE t.status = 'MENUNGGU'";
+            $from = "FROM titles t JOIN students s ON t.student_id = s.id LEFT JOIN users u ON t.verified_by = u.id";
 
-            // Apply active angkatan filter to waiting titles too
-            $waitingPlaceholders = [];
+            // Count waiting titles
+            $waitingBase = "t.status = 'MENUNGGU'";
+            $waitingParams = [];
             if (!empty($activeAngkatan)) {
-                foreach ($activeAngkatan as $index => $value) {
-                    $placeholder = ':waiting_active_' . $index;
-                    $waitingPlaceholders[$placeholder] = (int)$value;
-                }
-                if (!empty($waitingPlaceholders)) {
-                    $waitingQuery .= " AND s.angkatan IN (" . implode(',', array_keys($waitingPlaceholders)) . ")";
+                $ph = implode(',', array_fill(0, count($activeAngkatan), '?'));
+                $waitingBase .= " AND s.angkatan IN ($ph)";
+                foreach ($activeAngkatan as $a) {
+                    $waitingParams[] = (int)$a;
                 }
             }
+            $wCountStmt = $db->prepare("SELECT COUNT(*) $from WHERE $waitingBase");
+            $wCountStmt->execute($waitingParams);
+            $waitingCount = (int)$wCountStmt->fetchColumn();
 
-            $waitingQuery .= " ORDER BY t.submitted_at ASC";
-
-            $waitingStmt = $db->prepare($waitingQuery);
-            foreach ($waitingPlaceholders as $placeholder => $value) {
-                $waitingStmt->bindValue($placeholder, $value, PDO::PARAM_INT);
-            }
-            $waitingStmt->execute();
-            $waitingTitles = $waitingStmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Build query for other titles (not MENUNGGU) with filters
-            $query = "SELECT t.*, s.nim, s.name as student_name, s.angkatan, s.status AS student_status,
-                             u.name as verified_by_name
-                      FROM titles t
-                      JOIN students s ON t.student_id = s.id
-                      LEFT JOIN users u ON t.verified_by = u.id
-                      WHERE t.status != 'MENUNGGU'";
-
-            $activePlaceholders = [];
+            // Count other titles
+            $otherBase = "t.status != 'MENUNGGU'";
+            $otherParams = [];
             if (!empty($activeAngkatan)) {
-                foreach ($activeAngkatan as $index => $value) {
-                    $placeholder = ':active_' . $index;
-                    $activePlaceholders[$placeholder] = (int)$value;
-                }
-                if (!empty($activePlaceholders)) {
-                    $query .= " AND s.angkatan IN (" . implode(',', array_keys($activePlaceholders)) . ")";
+                $ph = implode(',', array_fill(0, count($activeAngkatan), '?'));
+                $otherBase .= " AND s.angkatan IN ($ph)";
+                foreach ($activeAngkatan as $a) {
+                    $otherParams[] = (int)$a;
                 }
             }
-
-            if (!empty($search)) {
-                $query .= " AND (s.nim LIKE :search OR s.name LIKE :search)";
+            if ($search !== '') {
+                $otherBase .= " AND (s.nim LIKE ? OR s.name LIKE ?)";
+                $kw = "%{$search}%";
+                $otherParams[] = $kw;
+                $otherParams[] = $kw;
             }
-
-            if (!empty($angkatan)) {
-                $query .= " AND s.angkatan = :angkatan";
+            if ($angkatan !== '') {
+                $otherBase .= " AND s.angkatan = ?";
+                $otherParams[] = (int)$angkatan;
             }
-
-            $query .= " ORDER BY t.submitted_at DESC";
-
-            $stmt = $db->prepare($query);
-
-            foreach ($activePlaceholders as $placeholder => $value) {
-                $stmt->bindValue($placeholder, $value, PDO::PARAM_INT);
-            }
-
-            if (!empty($search)) {
-                $searchParam = "%{$search}%";
-                $stmt->bindValue(':search', $searchParam);
-            }
-
-            if (!empty($angkatan)) {
-                $stmt->bindValue(':angkatan', $angkatan, PDO::PARAM_INT);
-            }
-
-            $stmt->execute();
-            $otherTitles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $oCountStmt = $db->prepare("SELECT COUNT(*) $from WHERE $otherBase");
+            $oCountStmt->execute($otherParams);
+            $otherCount = (int)$oCountStmt->fetchColumn();
 
             if (!empty($activeAngkatan)) {
                 $angkatanList = array_values($activeAngkatan);
@@ -651,11 +637,11 @@ class TitleController extends BaseController {
                 $angkatanStmt->execute();
                 $angkatanList = $angkatanStmt->fetchAll(PDO::FETCH_COLUMN);
             }
-            
-            // Show titles list with split sections
+
+            // Show titles list with split sections (tables loaded server-side)
             $this->render('titles/view', [
-                'waitingTitles' => $waitingTitles,
-                'otherTitles' => $otherTitles,
+                'waitingCount' => $waitingCount,
+                'otherCount' => $otherCount,
                 'angkatanList' => $angkatanList,
                 'currentSearch' => $search,
                 'currentAngkatan' => $angkatan,
@@ -666,7 +652,93 @@ class TitleController extends BaseController {
             $this->render('titles/view', ['error' => 'Gagal memuat data judul: ' . $e->getMessage()]);
         }
     }
-    
+
+    public function viewData() {
+        $this->requireAuth();
+
+        $role = $this->getUserRole();
+        if ($role !== 'kombi' && $role !== 'superadmin') {
+            $this->jsonResponse(['draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []], 403);
+            return;
+        }
+
+        $draw = isset($_GET['draw']) ? (int)$_GET['draw'] : 1;
+        $start = isset($_GET['start']) ? max(0, (int)$_GET['start']) : 0;
+        $length = isset($_GET['length']) ? (int)$_GET['length'] : 25;
+        if ($length < 0) {
+            $length = 100000;
+        }
+
+        $type = (string)($_GET['type'] ?? 'other');
+        $search = trim((string)($_GET['search'] ?? ''));
+        $angkatan = trim((string)($_GET['angkatan'] ?? ''));
+        $activeAngkatan = Settings::getActiveAngkatan();
+
+        $base = ($type === 'waiting') ? "t.status = 'MENUNGGU'" : "t.status != 'MENUNGGU'";
+        $baseParams = [];
+        if (!empty($activeAngkatan)) {
+            $ph = implode(',', array_fill(0, count($activeAngkatan), '?'));
+            $base .= " AND s.angkatan IN ($ph)";
+            foreach ($activeAngkatan as $a) {
+                $baseParams[] = (int)$a;
+            }
+        }
+
+        $extra = '';
+        $extraParams = [];
+        if ($type !== 'waiting') {
+            if ($angkatan !== '' && (empty($activeAngkatan) || in_array((int)$angkatan, $activeAngkatan, true))) {
+                $extra .= " AND s.angkatan = ?";
+                $extraParams[] = (int)$angkatan;
+            }
+            if ($search !== '') {
+                $extra .= " AND (s.nim LIKE ? OR s.name LIKE ?)";
+                $kw = "%{$search}%";
+                $extraParams[] = $kw;
+                $extraParams[] = $kw;
+            }
+        }
+
+        $from = "FROM titles t JOIN students s ON t.student_id = s.id LEFT JOIN users u ON t.verified_by = u.id";
+
+        $totalStmt = $this->db->prepare("SELECT COUNT(*) $from WHERE $base");
+        $totalStmt->execute($baseParams);
+        $recordsTotal = (int)$totalStmt->fetchColumn();
+
+        $allParams = array_merge($baseParams, $extraParams);
+        $filteredStmt = $this->db->prepare("SELECT COUNT(*) $from WHERE $base$extra");
+        $filteredStmt->execute($allParams);
+        $recordsFiltered = (int)$filteredStmt->fetchColumn();
+
+        if ($type === 'waiting') {
+            $orderable = [0 => 's.nim', 1 => 's.name', 2 => 's.angkatan', 3 => 't.title', 4 => 't.submitted_at'];
+            $defaultCol = 4;
+            $defaultDir = 'ASC';
+        } else {
+            $orderable = [0 => 's.nim', 1 => 's.name', 2 => 's.angkatan', 3 => 't.title', 4 => 't.status', 5 => 't.submitted_at', 6 => 'u.name'];
+            $defaultCol = 5;
+            $defaultDir = 'DESC';
+        }
+        $orderCol = isset($_GET['order'][0]['column']) ? (int)$_GET['order'][0]['column'] : $defaultCol;
+        $orderDir = strtoupper((string)($_GET['order'][0]['dir'] ?? $defaultDir));
+        if (!in_array($orderDir, ['ASC', 'DESC'], true)) {
+            $orderDir = $defaultDir;
+        }
+        $orderField = $orderable[$orderCol] ?? 't.submitted_at';
+        $orderSql = "ORDER BY $orderField $orderDir, t.id ASC";
+
+        $stmt = $this->db->prepare("SELECT t.id, t.title, t.status, t.submitted_at, s.nim, s.name AS student_name, s.angkatan, s.status AS student_status, u.name AS verified_by_name $from WHERE $base$extra $orderSql LIMIT $length OFFSET $start");
+        $stmt->execute($allParams);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->jsonResponse([
+            'draw' => $draw,
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data
+        ]);
+    }
+
     public function viewDetail($params) {
         // Require authentication
         $this->requireAuth();

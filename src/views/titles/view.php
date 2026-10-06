@@ -1,6 +1,6 @@
 <?php
-$waitingTitles = $waitingTitles ?? [];
-$otherTitles = $otherTitles ?? [];
+$waitingCount = $waitingCount ?? 0;
+$otherCount = $otherCount ?? 0;
 $success = $success ?? null;
 $error = $error ?? null;
 $activeRole = strtolower($_SESSION['active_role'] ?? ($_SESSION['role'] ?? ''));
@@ -249,11 +249,11 @@ $currentSearch = $currentSearch ?? '';
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
                 <div class="d-inline-flex gap-3">
                     <div class="text-center">
-                        <div class="display-6 fw-bold text-white"><?= count($waitingTitles) ?></div>
+                        <div class="display-6 fw-bold text-white"><?= $waitingCount ?></div>
                         <small class="opacity-75">Menunggu</small>
                     </div>
                     <div class="text-center">
-                        <div class="display-6 fw-bold text-white"><?= count($otherTitles) ?></div>
+                        <div class="display-6 fw-bold text-white"><?= $otherCount ?></div>
                         <small class="opacity-75">Terverifikasi</small>
                     </div>
                 </div>
@@ -281,7 +281,7 @@ if ($success): ?>
 <?php endif; ?>
 
 <!-- SECTION 1: Menunggu Verifikasi -->
-<?php if (!empty($waitingTitles)): ?>
+<?php if ($waitingCount > 0): ?>
 <div class="row mb-4">
     <div class="col-12">
         <div class="card titles-section-card titles-waiting-section">
@@ -290,7 +290,7 @@ if ($success): ?>
                     <h5 class="mb-1">
                         <i class="fas fa-bell text-warning me-2"></i>
                         Menunggu Verifikasi
-                        <span class="badge bg-warning text-dark ms-2 titles-status-badge"><?= count($waitingTitles) ?></span>
+                        <span class="badge bg-warning text-dark ms-2 titles-status-badge"><?= $waitingCount ?></span>
                     </h5>
                     <small class="text-muted">Judul yang memerlukan verifikasi segera</small>
                 </div>
@@ -309,60 +309,6 @@ if ($success): ?>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($waitingTitles as $title): ?>
-                            <tr>
-                                <td>
-                                    <span class="titles-nim"><?= htmlspecialchars($title['nim']) ?></span>
-                                </td>
-                                <td>
-                                    <div class="titles-student-name"><?= htmlspecialchars($title['student_name']) ?></div>
-                                    <?php
-                                        $studentStatus = isset($title['student_status']) ? strtoupper(trim((string)$title['student_status'])) : '';
-                                        if ($studentStatus === 'LULUS'):
-                                    ?>
-                                        <span class="badge bg-success titles-student-badge">Lulus</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark"><?= htmlspecialchars($title['angkatan']) ?></span>
-                                </td>
-                                <td>
-                                    <div class="titles-title-preview">
-                                        <?php
-                                            $titleText = (string)$title['title'];
-                                            if (function_exists('mb_substr')) {
-                                                $titlePreview = mb_substr($titleText, 0, 70);
-                                                $isTrimmed = mb_strlen($titleText) > 70;
-                                            } else {
-                                                $titlePreview = substr($titleText, 0, 70);
-                                                $isTrimmed = strlen($titleText) > 70;
-                                            }
-                                            echo htmlspecialchars($isTrimmed ? $titlePreview . '…' : $titlePreview);
-                                        ?>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="titles-date">
-                                        <i class="far fa-clock me-1"></i>
-                                        <?= date('d M Y', strtotime($title['submitted_at'])) ?>
-                                        <br>
-                                        <small class="text-muted"><?= date('H:i', strtotime($title['submitted_at'])) ?></small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="/titles/view/<?= $title['id'] ?>" class="btn btn-sm btn-outline-info titles-action-btn">
-                                            <i class="fas fa-eye me-1"></i>Lihat
-                                        </a>
-                                        <?php if ($canVerify): ?>
-                                            <a href="/titles/verify/<?= $title['id'] ?>" class="btn btn-sm btn-warning titles-action-btn">
-                                                <i class="fas fa-check me-1"></i>Verifikasi
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -392,7 +338,7 @@ if ($success): ?>
                 <h5 class="mb-1">
                     <i class="fas fa-book text-primary me-2"></i>
                     Semua Judul Terverifikasi
-                    <span class="badge bg-primary ms-2 titles-status-badge"><?= count($otherTitles) ?></span>
+                    <span class="badge bg-primary ms-2 titles-status-badge"><?= $otherCount ?></span>
                 </h5>
                 <small class="text-muted">Daftar judul yang telah diverifikasi</small>
             </div>
@@ -453,100 +399,6 @@ if ($success): ?>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (empty($otherTitles)): ?>
-                            <tr>
-                                <td colspan="8">
-                                    <div class="titles-empty-state py-4">
-                                        <i class="fas fa-inbox text-muted"></i>
-                                        <p class="mb-0 text-muted">Tidak ada data judul</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php else: ?>
-                            <?php foreach ($otherTitles as $title): ?>
-                            <tr>
-                                <td>
-                                    <span class="titles-nim"><?= htmlspecialchars($title['nim']) ?></span>
-                                </td>
-                                <td>
-                                    <div class="titles-student-name"><?= htmlspecialchars($title['student_name']) ?></div>
-                                    <?php
-                                        $studentStatus = isset($title['student_status']) ? strtoupper(trim((string)$title['student_status'])) : '';
-                                        if ($studentStatus === 'LULUS'):
-                                    ?>
-                                        <span class="badge bg-success titles-student-badge">Lulus</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark"><?= htmlspecialchars($title['angkatan']) ?></span>
-                                </td>
-                                <td>
-                                    <div class="titles-title-preview">
-                                        <?php
-                                            $titleText = (string)$title['title'];
-                                            if (function_exists('mb_substr')) {
-                                                $titlePreview = mb_substr($titleText, 0, 55);
-                                                $isTrimmed = mb_strlen($titleText) > 55;
-                                            } else {
-                                                $titlePreview = substr($titleText, 0, 55);
-                                                $isTrimmed = strlen($titleText) > 55;
-                                            }
-                                            echo htmlspecialchars($isTrimmed ? $titlePreview . '…' : $titlePreview);
-                                        ?>
-                                    </div>
-                                </td>
-                                <td>
-                                    <?php
-                                    $statusClass = 'bg-secondary';
-                                    switch ($title['status']) {
-                                        case 'DITERIMA':
-                                            $statusClass = 'bg-success';
-                                            break;
-                                        case 'DITOLAK':
-                                            $statusClass = 'bg-danger';
-                                            break;
-                                        case 'PERLU_REVISI':
-                                            $statusClass = 'bg-info';
-                                            break;
-                                    }
-                                    ?>
-                                    <span class="badge titles-status-badge <?= $statusClass ?>">
-                                        <?= htmlspecialchars($title['status']) ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="titles-date">
-                                        <i class="far fa-calendar me-1"></i>
-                                        <?= date('d M Y', strtotime($title['submitted_at'])) ?>
-                                        <br>
-                                        <small class="text-muted"><?= date('H:i', strtotime($title['submitted_at'])) ?></small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="titles-verified-by">
-                                        <?php if (!empty($title['verified_by_name'])): ?>
-                                            <i class="fas fa-user-check me-1"></i>
-                                            <?= htmlspecialchars($title['verified_by_name']) ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">-</span>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="/titles/view/<?= $title['id'] ?>" class="btn btn-sm btn-info titles-action-btn">
-                                            <i class="fas fa-eye me-1"></i>Lihat
-                                        </a>
-                                        <?php if ($canManage): ?>
-                                            <a href="/titles/<?= $title['id'] ?>/edit" class="btn btn-sm btn-primary titles-action-btn">
-                                                <i class="fas fa-edit me-1"></i>Edit
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -558,21 +410,56 @@ if ($success): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof $ !== 'undefined') {
-        // Nonaktifkan peringatan DataTables
         $.fn.dataTable.ext.errMode = 'none';
-        
+
+        var canVerify = <?= $canVerify ? 'true' : 'false' ?>;
+        var canManage = <?= $canManage ? 'true' : 'false' ?>;
+        var currentSearch = <?= json_encode($currentSearch ?? '') ?>;
+        var currentAngkatan = <?= json_encode($currentAngkatan ?? '') ?>;
+
+        function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
+        function fmtDate(v) {
+            var d = new Date(String(v).replace(' ', 'T'));
+            if (isNaN(d.getTime())) return esc(v);
+            var m = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+            return ('0'+d.getDate()).slice(-2) + ' ' + m[d.getMonth()] + ' ' + d.getFullYear() + '<br><small class="text-muted">' + ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2) + '</small>';
+        }
+        function nameCell(name, studentStatus) {
+            var h = '<div class="titles-student-name">' + esc(name) + '</div>';
+            if (studentStatus === 'LULUS') h += '<span class="badge bg-success titles-student-badge">Lulus</span>';
+            return h;
+        }
+        function titlePreview(t, n) {
+            t = t || '';
+            return '<div class="titles-title-preview">' + esc(t.length > n ? t.substring(0, n) + '…' : t) + '</div>';
+        }
+
         // DataTables for waiting titles
         if ($('#waitingTitlesTable').length) {
-            var waitingTable = $('#waitingTitlesTable').DataTable({
+            $('#waitingTitlesTable').DataTable({
                 language: {
                     url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
-                    emptyTable: "Tidak ada judul yang menunggu verifikasi",
-                    search: "_INPUT_",
-                    searchPlaceholder: "Cari..."
+                    emptyTable: "Tidak ada judul yang menunggu verifikasi"
                 },
+                processing: true,
+                serverSide: true,
+                ajax: { url: '/titles/view/data', data: function(d) { d.type = 'waiting'; } },
                 pageLength: 10,
                 order: [[4, 'asc']],
                 lengthMenu: [ [5, 10, 25, 50], [5, 10, 25, 50] ],
+                searching: false,
+                columns: [
+                    { data: 'nim', render: function(d){ return '<span class="titles-nim">' + esc(d) + '</span>'; } },
+                    { data: 'student_name', render: function(d, t, r){ return nameCell(d, r.student_status); } },
+                    { data: 'angkatan', render: function(d){ return '<span class="badge bg-light text-dark">' + esc(d) + '</span>'; } },
+                    { data: 'title', render: function(d){ return titlePreview(d, 70); } },
+                    { data: 'submitted_at', render: fmtDate },
+                    { data: 'id', orderable: false, searchable: false, render: function(d){
+                        var h = '<div class="btn-group" role="group"><a href="/titles/view/' + d + '" class="btn btn-sm btn-outline-info titles-action-btn"><i class="fas fa-eye me-1"></i>Lihat</a>';
+                        if (canVerify) h += '<a href="/titles/verify/' + d + '" class="btn btn-sm btn-warning titles-action-btn"><i class="fas fa-check me-1"></i>Verifikasi</a>';
+                        return h + '</div>';
+                    } }
+                ],
                 columnDefs: [
                     { width: "10%", targets: 0 },
                     { width: "18%", targets: 1 },
@@ -582,29 +469,43 @@ document.addEventListener('DOMContentLoaded', function() {
                     { width: "18%", targets: 5 }
                 ],
                 autoWidth: false,
-                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-                drawCallback: function() {
-                    $('.dataTables_filter input').addClass('form-control form-control-sm');
-                    $('.dataTables_length select').addClass('form-select form-select-sm');
-                }
-            });
-            
-            waitingTable.on('error.dt', function (e, settings, techNote, message) {
-                console.log('DataTables error: ', message);
+                dom: 'lrtip'
             });
         }
-        
+
         // DataTables for other titles
         if ($('#otherTitlesTable').length) {
-            var otherTable = $('#otherTitlesTable').DataTable({
+            $('#otherTitlesTable').DataTable({
                 language: {
-                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
-                    search: "_INPUT_",
-                    searchPlaceholder: "Cari..."
+                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
                 },
+                processing: true,
+                serverSide: true,
+                ajax: { url: '/titles/view/data', data: function(d) { d.type = 'other'; d.search = currentSearch; d.angkatan = currentAngkatan; } },
                 pageLength: 25,
                 order: [[5, 'desc']],
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                searching: false,
+                columns: [
+                    { data: 'nim', render: function(d){ return '<span class="titles-nim">' + esc(d) + '</span>'; } },
+                    { data: 'student_name', render: function(d, t, r){ return nameCell(d, r.student_status); } },
+                    { data: 'angkatan', render: function(d){ return '<span class="badge bg-light text-dark">' + esc(d) + '</span>'; } },
+                    { data: 'title', render: function(d){ return titlePreview(d, 55); } },
+                    { data: 'status', render: function(d){
+                        var map = { 'DITERIMA': 'bg-success', 'DITOLAK': 'bg-danger', 'PERLU_REVISI': 'bg-info' };
+                        var cls = map[d] || 'bg-secondary';
+                        return '<span class="badge titles-status-badge ' + cls + '">' + esc(d) + '</span>';
+                    } },
+                    { data: 'submitted_at', render: fmtDate },
+                    { data: 'verified_by_name', render: function(d){
+                        return d ? '<div class="titles-verified-by"><i class="fas fa-user-check me-1"></i>' + esc(d) + '</div>' : '<span class="text-muted">-</span>';
+                    } },
+                    { data: 'id', orderable: false, searchable: false, render: function(d){
+                        var h = '<div class="btn-group" role="group"><a href="/titles/view/' + d + '" class="btn btn-sm btn-info titles-action-btn"><i class="fas fa-eye me-1"></i>Lihat</a>';
+                        if (canManage) h += '<a href="/titles/' + d + '/edit" class="btn btn-sm btn-primary titles-action-btn"><i class="fas fa-edit me-1"></i>Edit</a>';
+                        return h + '</div>';
+                    } }
+                ],
                 columnDefs: [
                     { width: "9%", targets: 0 },
                     { width: "16%", targets: 1 },
@@ -616,15 +517,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     { width: "10%", targets: 7 }
                 ],
                 autoWidth: false,
-                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-                drawCallback: function() {
-                    $('.dataTables_filter input').addClass('form-control form-control-sm');
-                    $('.dataTables_length select').addClass('form-select form-select-sm');
-                }
-            });
-            
-            otherTable.on('error.dt', function (e, settings, techNote, message) {
-                console.log('DataTables error: ', message);
+                dom: 'lrtip'
             });
         }
     }
