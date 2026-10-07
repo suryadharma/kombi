@@ -166,22 +166,35 @@ $submitLabel = $isEdit ? 'Perbarui Jadwal' : 'Simpan Jadwal';
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Progress check response:', data);
-                    if (data.completed && Array.isArray(data.completed)) {
-                        data.completed.forEach(stage => {
-                            const option = $(`#stage option[value="${stage}"]`);
-                            if (option.length) {
-                                const originalText = option.data('original-text') || option.text();
-                                option.prop('disabled', true);
-                                option.text(`${originalText} (Selesai)`);
-                            }
-                        });
-
-                        // If currently selected option is now disabled, reset selection
-                        const selectedOption = $('#stage option:selected');
-                        if (selectedOption.prop('disabled')) {
-                            $('#stage').val('');
+                    const stages = data.stages || {};
+                    Object.keys(stages).forEach(stage => {
+                        const info = stages[stage];
+                        const option = $(`#stage option[value="${stage}"]`);
+                        if (!option.length) {
+                            return;
                         }
+                        const originalText = option.data('original-text') || option.text();
+
+                        if (info.completed) {
+                            option.prop('disabled', true);
+                            option.text(`${originalText} — selesai dinilai`);
+                        } else if (info.has_event && info.event_status === 'MENUNGGU') {
+                            const assigned = info.assigned || 0;
+                            const submitted = info.submitted || 0;
+                            if (submitted === 0) {
+                                option.text(`${originalText} — sudah dijadwalkan, dosen belum input nilai`);
+                            } else {
+                                option.text(`${originalText} — sudah dijadwalkan, ${submitted}/${assigned} dosen sudah menilai`);
+                            }
+                        } else if (info.has_event && info.event_status === 'BATAL') {
+                            option.text(`${originalText} — pernah dibatalkan`);
+                        }
+                    });
+
+                    // If currently selected option is now disabled, reset selection
+                    const selectedOption = $('#stage option:selected');
+                    if (selectedOption.prop('disabled')) {
+                        $('#stage').val('');
                     }
                 })
                 .catch(error => {

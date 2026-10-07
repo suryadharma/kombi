@@ -53,6 +53,17 @@ class EventService
     }
 
     /**
+     * Get the assignment roles that are expected to evaluate a given stage.
+     *
+     * @return string[]
+     */
+    public static function getRequiredAssignmentRoles(string $stage): array
+    {
+        $stage = strtolower($stage);
+        return self::STAGE_ASSIGNMENT_ROLES[$stage] ?? [];
+    }
+
+    /**
      * Create or update an event for the given student and stage.
      *
      * @return array{id:int,is_new:bool,type:string,stage:string}
