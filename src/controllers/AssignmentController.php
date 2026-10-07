@@ -41,7 +41,7 @@ class AssignmentController extends BaseController
             'penguji_3' => 'Penguji Anggota 2'
         ];
         $studentId = null;
-        $students = $this->getStudents();
+        $students = $this->getStudents(true);
         $lecturers = $this->getLecturers();
         $lecturerMap = [];
         foreach ($lecturers as $lecturer) {
@@ -495,7 +495,7 @@ class AssignmentController extends BaseController
     /**
      * Get students for dropdown
      */
-    private function getStudents()
+    private function getStudents($onlyUnassigned = false)
     {
         // Get active angkatan from settings
         $activeAngkatan = Settings::getActiveAngkatan();
@@ -520,6 +520,11 @@ class AssignmentController extends BaseController
         if ($useActiveAngkatan && !empty($activeAngkatan)) {
             $placeholders = implode(',', array_fill(0, count($activeAngkatan), '?'));
             $query .= " AND s.angkatan IN ($placeholders)";
+        }
+
+        // Exclude students who already have an assignment
+        if ($onlyUnassigned) {
+            $query .= " HAVING assignment_count = 0";
         }
         
         $query .= " ORDER BY s.name";
