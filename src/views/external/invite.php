@@ -124,7 +124,6 @@
 $(document).ready(function() {
     // Initialize Select2 with autocomplete for student selection
     $('.select2-autocomplete').select2({
-        theme: 'bootstrap-5',
         width: '100%',
         placeholder: 'Ketik NIM atau nama mahasiswa...',
         allowClear: true
