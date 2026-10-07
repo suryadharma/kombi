@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if ($('#waitingTitlesTable').length) {
             $('#waitingTitlesTable').DataTable({
                 language: {
-                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json",
+                    url: "/public/vendor/datatables/1.13.4/i18n/id.json",
                     emptyTable: "Tidak ada judul yang menunggu verifikasi"
                 },
                 processing: true,
@@ -477,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if ($('#otherTitlesTable').length) {
             $('#otherTitlesTable').DataTable({
                 language: {
-                    url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+                    url: "/public/vendor/datatables/1.13.4/i18n/id.json"
                 },
                 processing: true,
                 serverSide: true,

@@ -1,5 +1,4 @@
 <?php
-$activeTab = $activeTab ?? 'sla';
 $rows = $rows ?? [];
 $summary = $summary ?? [];
 $thresholdHours = $thresholdHours ?? 72;
@@ -33,8 +32,6 @@ $stageBreakdown = $summary['stage_breakdown'] ?? [];
         </p>
     </div>
 </div>
-
-<?php include __DIR__ . '/_nav.php'; ?>
 
 <?php
 $stageOptions = [['value' => '', 'label' => 'Semua Tahap']];
@@ -206,7 +203,7 @@ include VIEW_PATH . '/components/filter_bar.php';
 $(document).ready(function() {
     var table = $('#slaTable').DataTable({
         language: {
-            url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+            url: "/public/vendor/datatables/1.13.4/i18n/id.json"
         },
         processing: true,
         serverSide: true,

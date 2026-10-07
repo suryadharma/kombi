@@ -46,8 +46,6 @@ $sortPeriod = static function (array $data): array {
     </div>
 </div>
 
-<?php include __DIR__ . '/_nav.php'; ?>
-
 <?php
 // Build year options based on actual data in database
 $yearOptions = [];
@@ -255,7 +253,7 @@ $(document).ready(function() {
     
     var table = $('#historicalWorkloadTable').DataTable({
         language: {
-            url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+            url: "/public/vendor/datatables/1.13.4/i18n/id.json"
         },
         processing: true,
         serverSide: true,

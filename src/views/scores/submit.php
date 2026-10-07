@@ -416,7 +416,7 @@ include VIEW_PATH . '/components/filter_bar.php';
             const scoresTable = tableElement.DataTable({
                 dom: 'lrtip',
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json'
+                    url: '/public/vendor/datatables/1.13.4/i18n/id.json'
                 },
                 pageLength: 25,
                 lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],

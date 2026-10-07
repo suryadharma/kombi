@@ -16,8 +16,6 @@ $currentSearch = $currentSearch ?? '';
     </div>
 </div>
 
-<?php include __DIR__ . '/_nav.php'; ?>
-
 <?php
 $angkatanOptions = [['value' => '', 'label' => 'Semua Angkatan']];
 foreach ($angkatanList as $angkatan) {
@@ -134,7 +132,7 @@ $(document).ready(function() {
     
     var table = $('#workloadTable').DataTable({
         language: {
-            url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+            url: "/public/vendor/datatables/1.13.4/i18n/id.json"
         },
         processing: true,
         serverSide: true,

@@ -9,6 +9,8 @@ class Database
     private $port;
     public $conn;
 
+    private static $shared = null;
+
     public function __construct()
     {
         $this->host = getenv('DB_HOST') ?: 'db'; // Menggunakan 'db' sebagai hostname dalam lingkungan Docker
@@ -20,7 +22,10 @@ class Database
 
     public function getConnection()
     {
-        $this->conn = null;
+        if (self::$shared instanceof PDO) {
+            $this->conn = self::$shared;
+            return $this->conn;
+        }
 
         try {
             $dsn = sprintf(
@@ -30,8 +35,9 @@ class Database
                 $this->port
             );
 
-            $this->conn = new PDO($dsn, $this->username, $this->password, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
-            $this->conn->exec("set names utf8");
+            self::$shared = new PDO($dsn, $this->username, $this->password, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
+            self::$shared->exec("set names utf8");
+            $this->conn = self::$shared;
         } catch (PDOException $exception) {
             echo "Connection error: " . $exception->getMessage();
             // Untuk debugging, tambahkan informasi tambahan

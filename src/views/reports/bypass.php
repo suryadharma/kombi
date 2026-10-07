@@ -1,5 +1,4 @@
 <?php
-$activeTab = $activeTab ?? 'bypass';
 $rows = $rows ?? [];
 $summary = $summary ?? ['total' => 0, 'stage_counts' => []];
 $stageLabels = $stageLabels ?? [];
@@ -16,8 +15,6 @@ $currentSearch = $currentSearch ?? '';
         <p class="text-muted mb-0">Monitoring seluruh penggunaan fitur bypass nilai sebagai bahan evaluasi.</p>
     </div>
 </div>
-
-<?php include __DIR__ . '/_nav.php'; ?>
 
 <?php
 $stageOptions = [['value' => '', 'label' => 'Semua Tahap']];
@@ -131,7 +128,7 @@ include VIEW_PATH . '/components/filter_bar.php';
 $(document).ready(function() {
     var table = $('#bypassTable').DataTable({
         language: {
-            url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+            url: "/public/vendor/datatables/1.13.4/i18n/id.json"
         },
         processing: true,
         serverSide: true,

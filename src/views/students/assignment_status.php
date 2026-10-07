@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         $('#assignmentStatusTable').DataTable({
             language: {
-                url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+                url: "/public/vendor/datatables/1.13.4/i18n/id.json"
             },
             pageLength: 25,
             order: [[0, 'asc']],

@@ -413,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         dataTableApi = $studentsTable.DataTable({
             language: {
-                url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+                url: "/public/vendor/datatables/1.13.4/i18n/id.json"
             },
             processing: true,
             serverSide: true,

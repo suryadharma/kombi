@@ -15,8 +15,6 @@ $statusList = $statusList ?? [];
     </div>
 </div>
 
-<?php include __DIR__ . '/_nav.php'; ?>
-
 <?php
 $angkatanOptions = [['value' => '', 'label' => 'Semua Angkatan']];
 foreach ($angkatanList as $angkatan) {
@@ -140,13 +138,13 @@ $(document).ready(function() {
         searching: false,
         info: false,
         language: {
-            url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+            url: "/public/vendor/datatables/1.13.4/i18n/id.json"
         }
     });
 
     var table = $('#studyPeriodDetailTable').DataTable({
         language: {
-            url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+            url: "/public/vendor/datatables/1.13.4/i18n/id.json"
         },
         processing: true,
         serverSide: true,
