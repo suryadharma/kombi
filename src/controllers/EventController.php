@@ -283,7 +283,7 @@ class EventController extends BaseController
             $errors = $this->validateSchedulingPrerequisites($db, $studentId);
         }
         if (empty($errors)) {
-            $stageStatus = $this->getStageStatus($db, $studentId, $stage);
+            $stageStatus = EventService::getStageStatus($db, $studentId, $stage);
             if ($stageStatus['completed']) {
                 $errors[] = 'Tahap ini sudah selesai (semua dosen sudah menilai). Jika ingin menjadwalkan ulang, ubah status jadwal sebelumnya terlebih dahulu.';
             }
@@ -563,7 +563,7 @@ class EventController extends BaseController
         $stagesInfo = [];
 
         foreach ($stages as $stage) {
-            $info = $this->getStageStatus($db, $studentId, $stage);
+            $info = EventService::getStageStatus($db, $studentId, $stage);
             $stagesInfo[$stage] = $info;
             if ($info['completed']) {
                 $completedStages[] = $stage;
@@ -575,65 +575,6 @@ class EventController extends BaseController
             'stages' => $stagesInfo
         ]);
         exit;
-    }
-
-    /**
-     * Get the current status of a stage for a student.
-     *
-     * Returns event status (MENUNGGU/SELESAI/BATAL or null) plus the number of
-     * assigned evaluators and how many have submitted their final score.
-     */
-    private function getStageStatus(PDO $db, int $studentId, string $stage): array
-    {
-        $eventType = EventService::toEventType($stage);
-
-        $eventStatus = null;
-        if ($eventType !== null) {
-            $stmt = $db->prepare("SELECT status FROM events WHERE student_id = :sid AND type = :type ORDER BY scheduled_date DESC, id DESC LIMIT 1");
-            $stmt->bindParam(':sid', $studentId, PDO::PARAM_INT);
-            $stmt->bindParam(':type', $eventType);
-            $stmt->execute();
-            $eventStatus = $stmt->fetchColumn() ?: null;
-        }
-
-        $requiredRoles = EventService::getRequiredAssignmentRoles($stage);
-
-        $assigned = 0;
-        $submitted = 0;
-        if (!empty($requiredRoles)) {
-            $placeholders = implode(',', array_fill(0, count($requiredRoles), '?'));
-
-            $assignStmt = $db->prepare("SELECT COUNT(*) FROM assignments WHERE student_id = ? AND role IN ($placeholders) AND lecturer_id IS NOT NULL");
-            $assignStmt->execute(array_merge([$studentId], $requiredRoles));
-            $assigned = (int) $assignStmt->fetchColumn();
-
-            $subStmt = $db->prepare("
-                SELECT COUNT(DISTINCT a.lecturer_id)
-                FROM assignments a
-                WHERE a.student_id = ?
-                  AND a.role IN ($placeholders)
-                  AND a.lecturer_id IS NOT NULL
-                  AND EXISTS (
-                      SELECT 1 FROM evaluations e
-                      WHERE e.student_id = a.student_id
-                        AND e.stage = ?
-                        AND e.evaluator_id = a.lecturer_id
-                        AND e.final_score IS NOT NULL
-                  )
-            ");
-            $subStmt->execute(array_merge([$studentId], $requiredRoles, [$stage]));
-            $submitted = (int) $subStmt->fetchColumn();
-        }
-
-        $completed = ($eventStatus === 'SELESAI') || ($assigned > 0 && $submitted >= $assigned);
-
-        return [
-            'has_event' => ($eventStatus !== null),
-            'event_status' => $eventStatus,
-            'assigned' => $assigned,
-            'submitted' => $submitted,
-            'completed' => $completed
-        ];
     }
 
     /**

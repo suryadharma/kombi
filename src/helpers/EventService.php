@@ -64,6 +64,81 @@ class EventService
     }
 
     /**
+     * Get the stages that can be scheduled via the scheduling forms.
+     *
+     * @return array<string,string>
+     */
+    public static function getSchedulableStageOptions(): array
+    {
+        return [
+            'sempro' => 'Seminar Proposal (Sempro)',
+            'semhas' => 'Seminar Hasil (Semhas)',
+            'ujian' => 'Ujian Skripsi'
+        ];
+    }
+
+    /**
+     * Get the current status of a stage for a student.
+     *
+     * Returns the latest event status (MENUNGGU/SELESAI/BATAL or null) plus the
+     * number of assigned evaluators and how many have submitted their final score.
+     *
+     * @return array{has_event:bool,event_status:?string,assigned:int,submitted:int,completed:bool}
+     */
+    public static function getStageStatus(PDO $db, int $studentId, string $stage): array
+    {
+        $eventType = self::toEventType($stage);
+
+        $eventStatus = null;
+        if ($eventType !== null) {
+            $stmt = $db->prepare("SELECT status FROM events WHERE student_id = :sid AND type = :type ORDER BY scheduled_date DESC, id DESC LIMIT 1");
+            $stmt->bindParam(':sid', $studentId, PDO::PARAM_INT);
+            $stmt->bindParam(':type', $eventType);
+            $stmt->execute();
+            $eventStatus = $stmt->fetchColumn() ?: null;
+        }
+
+        $requiredRoles = self::getRequiredAssignmentRoles($stage);
+
+        $assigned = 0;
+        $submitted = 0;
+        if (!empty($requiredRoles)) {
+            $placeholders = implode(',', array_fill(0, count($requiredRoles), '?'));
+
+            $assignStmt = $db->prepare("SELECT COUNT(*) FROM assignments WHERE student_id = ? AND role IN ($placeholders) AND lecturer_id IS NOT NULL");
+            $assignStmt->execute(array_merge([$studentId], $requiredRoles));
+            $assigned = (int) $assignStmt->fetchColumn();
+
+            $subStmt = $db->prepare("
+                SELECT COUNT(DISTINCT a.lecturer_id)
+                FROM assignments a
+                WHERE a.student_id = ?
+                  AND a.role IN ($placeholders)
+                  AND a.lecturer_id IS NOT NULL
+                  AND EXISTS (
+                      SELECT 1 FROM evaluations e
+                      WHERE e.student_id = a.student_id
+                        AND e.stage = ?
+                        AND e.evaluator_id = a.lecturer_id
+                        AND e.final_score IS NOT NULL
+                  )
+            ");
+            $subStmt->execute(array_merge([$studentId], $requiredRoles, [$stage]));
+            $submitted = (int) $subStmt->fetchColumn();
+        }
+
+        $completed = ($eventStatus === 'SELESAI') || ($assigned > 0 && $submitted >= $assigned);
+
+        return [
+            'has_event' => ($eventStatus !== null),
+            'event_status' => $eventStatus,
+            'assigned' => $assigned,
+            'submitted' => $submitted,
+            'completed' => $completed
+        ];
+    }
+
+    /**
      * Create or update an event for the given student and stage.
      *
      * @return array{id:int,is_new:bool,type:string,stage:string}

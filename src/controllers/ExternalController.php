@@ -31,6 +31,20 @@ class ExternalController extends BaseController {
                 return;
             }
 
+            $stageOptions = EventService::getSchedulableStageOptions();
+            if (!isset($stageOptions[$stage])) {
+                $this->setFlash('error', 'Tahap ujian tidak valid.');
+                $this->redirect('/external/invite');
+                return;
+            }
+
+            $stageStatus = EventService::getStageStatus($db, $studentId, $stage);
+            if ($stageStatus['completed']) {
+                $this->setFlash('error', 'Tahap ini sudah selesai (semua dosen sudah menilai). Jika ingin menjadwalkan ulang, ubah status jadwal sebelumnya terlebih dahulu.');
+                $this->redirect('/external/invite');
+                return;
+            }
+
             try {
                 $eventInfo = EventService::upsertEvent($db, $studentId, $stage, $eventDate, $eventTime, $room);
                 $invite = ExternalInviteService::createExternalToken(
@@ -62,6 +76,7 @@ class ExternalController extends BaseController {
         $students = $this->getStudents($db);
         $this->render('external/invite', [
             'students' => $students,
+            'stageOptions' => EventService::getSchedulableStageOptions(),
             'error' => $this->getFlash('error'),
             'success' => $this->getFlash('success')
         ]);
@@ -347,16 +362,30 @@ class ExternalController extends BaseController {
     private function getStudents(PDO $db): array {
         $activeAngkatan = Settings::getActiveAngkatan();
 
-        $query = "SELECT id, nim, name FROM students WHERE status != 'LULUS'";
+        $query = "SELECT s.id, s.nim, s.name
+                  FROM students s
+                  WHERE s.status != 'LULUS'
+                    AND EXISTS (
+                        SELECT 1 FROM titles t
+                        WHERE t.student_id = s.id AND t.status = 'DITERIMA'
+                    )
+                    AND EXISTS (
+                        SELECT 1 FROM assignments a
+                        WHERE a.student_id = s.id AND a.role = 'pembimbing_1'
+                    )
+                    AND EXISTS (
+                        SELECT 1 FROM assignments a
+                        WHERE a.student_id = s.id AND a.role = 'penguji_1'
+                    )";
         $params = [];
 
         if (!empty($activeAngkatan)) {
             $placeholders = implode(',', array_fill(0, count($activeAngkatan), '?'));
-            $query .= " AND angkatan IN ($placeholders)";
+            $query .= " AND s.angkatan IN ($placeholders)";
             $params = $activeAngkatan;
         }
 
-        $query .= " ORDER BY name";
+        $query .= " ORDER BY s.name";
 
         $stmt = $db->prepare($query);
         $stmt->execute($params);

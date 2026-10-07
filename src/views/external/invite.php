@@ -1,4 +1,4 @@
-<?php $studentsList = $students ?? []; ?>
+<?php $studentsList = $students ?? []; $stageOptions = $stageOptions ?? []; ?>
 
 <div class="row">
     <div class="col-12">
@@ -53,9 +53,9 @@
                         <label for="stage" class="form-label">Tahap Ujian</label>
                         <select class="form-select" id="stage" name="stage" required>
                             <option value="">Pilih Tahap</option>
-                            <option value="sempro">Seminar Proposal (Sempro)</option>
-                            <option value="semhas">Seminar Hasil (Semhas)</option>
-                            <option value="ujian">Ujian Skripsi</option>
+                            <?php foreach ($stageOptions as $key => $label): ?>
+                                <option value="<?php echo htmlspecialchars($key); ?>"><?php echo htmlspecialchars($label); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     
@@ -128,6 +128,77 @@ $(document).ready(function() {
         width: '100%',
         placeholder: 'Ketik NIM atau nama mahasiswa...',
         allowClear: true
+    });
+
+    // Store original text of stage options on page load
+    $('#stage option').each(function () {
+        if ($(this).val() && !$(this).data('original-text')) {
+            $(this).data('original-text', $(this).text());
+        }
+    });
+
+    // Update stage dropdown progress when a student is selected
+    $('#student_id').on('select2:select change', function () {
+        const studentId = $(this).val();
+
+        // Reset all options first
+        $('#stage option').prop('disabled', false).each(function () {
+            if ($(this).val()) {
+                $(this).text($(this).data('original-text') || $(this).text());
+            }
+        });
+
+        if (!studentId) {
+            return;
+        }
+
+        fetch(`/events/check-progress?student_id=${studentId}`, {
+            headers: { 'Accept': 'application/json' }
+        })
+            .then(response => {
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    throw new Error('Session expired');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const stages = data.stages || {};
+                Object.keys(stages).forEach(stage => {
+                    const info = stages[stage];
+                    const option = $(`#stage option[value="${stage}"]`);
+                    if (!option.length) {
+                        return;
+                    }
+                    const originalText = option.data('original-text') || option.text();
+
+                    if (info.completed) {
+                        option.prop('disabled', true);
+                        option.text(`${originalText} — selesai dinilai`);
+                    } else if (info.has_event && info.event_status === 'MENUNGGU') {
+                        const assigned = info.assigned || 0;
+                        const submitted = info.submitted || 0;
+                        if (submitted === 0) {
+                            option.text(`${originalText} — sudah dijadwalkan, dosen belum input nilai`);
+                        } else {
+                            option.text(`${originalText} — sudah dijadwalkan, ${submitted}/${assigned} dosen sudah menilai`);
+                        }
+                    } else if (info.has_event && info.event_status === 'BATAL') {
+                        option.text(`${originalText} — pernah dibatalkan`);
+                    }
+                });
+
+                // Reset selection if the currently selected stage is now disabled
+                const selectedOption = $('#stage option:selected');
+                if (selectedOption.prop('disabled')) {
+                    $('#stage').val('');
+                }
+            })
+            .catch(error => {
+                if (error.message !== 'Session expired') {
+                    console.error('Error fetching student progress:', error);
+                }
+            });
     });
 });
 </script>
