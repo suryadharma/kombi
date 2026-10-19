@@ -3,9 +3,10 @@
 ## 📋 Daftar Isi
 1. [Overview Aplikasi](#overview-aplikasi)
 2. [Pengguna dan Peran](#pengguna-dan-peran)
-3. [Alur Utama Aplikasi](#alur-utama-aplikasi)
-4. [Fitur per Role](#fitur-per-role)
-5. [Flowchart Lengkap](#flowchart-lengkap)
+3. [Dosen Eksternal](#dosen-eksternal)
+4. [Alur Utama Aplikasi](#alur-utama-aplikasi)
+5. [Fitur per Role](#fitur-per-role)
+6. [Flowchart Lengkap](#flowchart-lengkap)
 
 ---
 
@@ -30,7 +31,51 @@
 | **Dosen Pembimbing** | `dosen_pembimbing` | Dosen pembimbing skripsi mahasiswa |
 | **Dosen Penguji** | `dosen_penguji` | Dosen penguji ujian skripsi |
 | **Mahasiswa** | `mahasiswa` | Mahasiswa yang menyelesaikan skripsi |
-| **Penguji Eksternal** | `penguji_eksternal` | Penguji dari luar kampus |
+| **Penguji Tamu (token)** | `penguji_eksternal` | Role khusus untuk penilaian lewat **token undangan** (penguji tamu / data lama). Dosen eksternal berakun memakai role dosen biasa — lihat [Dosen Eksternal](#dosen-eksternal) |
+
+---
+
+## Dosen Eksternal
+
+Dosen eksternal adalah dosen yang berasal dari **luar prodi atau luar kampus**. Secara fungsional mereka **sama dengan dosen internal**:
+
+- Dapat ditugaskan sebagai **Pembimbing** maupun **Penguji**.
+- Sama-sama memberi nilai ke mahasiswa.
+- Akun dan alur penilaiannya mengikuti dosen internal.
+
+Yang membedakan hanya **penanda data** (`lecturers.is_external`) dan **cara login** (tersedia dua opsi).
+
+> **Catatan teknis:** status "eksternal" adalah *atribut*, bukan role terpisah. Akun dosen eksternal memakai role dosen biasa (`dosen_pembimbing`); fungsi pembimbing/penguji ditentukan oleh **penugasan** (`assignments.role`).
+
+### Cara Menambahkan Dosen Eksternal (Kombi/Superadmin)
+
+| Cara | Menu | Keterangan |
+|------|------|-----------|
+| Tambah manual | `/lecturers/create` | Centang **"Dosen Eksternal"** |
+| Impor CSV | `/lecturers/import` | Isi kolom `External` dengan `Ya` / `True` / `1` |
+
+Saat data disimpan, sistem otomatis membuatkan **akun login**:
+
+- **Username:** NIP dosen
+- **Password default:** sama dengan NIP (dapat diganti sendiri melalui `/profile`)
+
+### Penetapan sebagai Pembimbing / Penguji
+
+Hanya **Kombi/Superadmin** yang dapat menetapkan dosen eksternal:
+
+- Menu **Penugasan Dosen** (`/assignments/set`)
+- Menu **Ganti Dosen** (`/assignments/change/{id}`)
+
+Dosen eksternal muncul pada dropdown penetapan dengan label **"(Eksternal)"**. Pada **pengajuan judul oleh mahasiswa**, dosen eksternal **tidak** dimunculkan — hanya Kombi yang menetapkannya.
+
+### Login Dosen Eksternal
+
+Dosen eksternal dapat masuk melalui **dua cara**:
+
+1. **Login biasa** (`/login`) — username = NIP, password = NIP (dapat diganti). Setelah login, gunakan menu penilaian seperti dosen biasa (`/scores/submit`).
+2. **Login token** (`/external/login`) — masukkan NIP + token undangan dari Kombi (untuk penguji tamu tanpa akun).
+
+Kedua jalur menulis ke **data nilai yang sama**, sehingga tidak terjadi penilaian ganda. Bila dosen eksternal sudah ditugaskan sebagai pembimbing/penguji, nilai yang diinput lewat token pun **ikut dihitung** pada agregat nilai sesuai peran penugasannya.
 
 ---
 
@@ -226,6 +271,8 @@
 | `/lecturers` | Kelola data dosen |
 | `/users` | Kelola akun pengguna |
 
+> **Dosen eksternal:** Kombi juga dapat menambahkan dosen eksternal melalui `/lecturers` (centang "Dosen Eksternal") lalu menetapkannya sebagai **pembimbing atau penguji** seperti dosen internal. Selengkapnya lihat [Dosen Eksternal](#dosen-eksternal).
+
 **Alur Penggunaan Kombi:**
 
 ```
@@ -285,7 +332,7 @@
     │     - Pilih mahasiswa                                                        │
     │     - Pilih tahap (SemPro/SemHas/Ujian)                                      │
     │     - Set tanggal & waktu                                                   │
-    │     - Undang penguji eksternal (jika perlu)                                  │
+    │     - Undang penguji tamu (jika perlu)                                       │
     └─────────────────────────────────────────────────────────────────────────────┘
               │
               v
@@ -534,16 +581,33 @@
 
 ---
 
-### 5. PENGUJI EKSTERNAL
+### 5. DOSEN EKSTERNAL (Pembimbing / Penguji)
+
+Dosen eksternal dapat ditugaskan sebagai **pembimbing** maupun **penguji** dan sama-sama memberi nilai. Selengkapnya lihat bagian [Dosen Eksternal](#dosen-eksternal). Tersedia **dua cara login**.
 
 **Fitur yang Tersedia:**
 
 | Menu | Deskripsi |
 |------|-----------|
-| `/external/login` | Login menggunakan token dari undangan |
-| `/external/score/submit` | Input nilai untuk mahasiswa yang diuji |
+| `/login` | Login sebagai dosen (username & password = NIP) |
+| `/scores/submit` | Input nilai mahasiswa yang ditugaskan |
+| `/evaluations/form/{student_id}/{stage}` | Form penilaian detail |
+| `/profile` | Ubah profil & password |
+| `/external/login` | Login alternatif menggunakan token undangan |
+| `/external/score/submit` | Input nilai lewat jalur token |
 
-**Alur Penggunaan Penguji Eksternal:**
+**Opsi A — Login dengan akun (seperti dosen internal):**
+
+1. Ditambahkan oleh Kombi via `/lecturers/create` (centang **"Dosen Eksternal"**) atau `/lecturers/import` (kolom `External` = `Ya`). Akun otomatis dibuat (username & password = NIP).
+2. Login di `/login` menggunakan NIP sebagai username dan password.
+3. Ditugaskan Kombi sebagai pembimbing/penguji via `/assignments/set` atau `/assignments/change`.
+4. Input nilai via `/scores/submit` → `/evaluations/form/{student_id}/{stage}`.
+5. Disarankan mengganti password via `/profile`.
+
+**Opsi B — Login dengan token (untuk penguji tamu):**
+
+> Kedua jalur menulis ke data nilai yang sama, sehingga tidak terjadi penilaian ganda. Bila sudah ditugaskan, nilai via token ikut dihitung pada agregat sesuai perannya.
+
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -566,7 +630,7 @@
                               │
                               v
     ┌─────────────────────────────────────────────────────────────────────────────┐
-    │  3. Dashboard Penguji Eksternal                                             │
+    │  3. Dashboard Penguji Tamu                                                  │
     │     - Lihat jadwal ujian                                                    │
     │     - Akses form penilaian                                                  │
     └─────────────────────────────────────────────────────────────────────────────┘
@@ -760,7 +824,7 @@
 │  │  │  - Tahap: Sempro                                                                                                                            │  │  │
 │  │  │  - Tanggal & Waktu                                                                                                                          │  │  │
 │  │  │  - Ruang                                                                                                                                    │  │  │
-│  │  │  - Undang penguji eksternal (opsional)                                                                                                      │  │  │
+│  │  │  - Undang penguji tamu (opsional)                                                                                                           │  │  │
 │  │  │                                                                                                                                             │  │  │
 │  │  │  [Simpan Jadwal]                                                                                                                            │  │  │
 │  │  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘  │  │
@@ -936,7 +1000,7 @@
 
 4. **Angkatan Aktif**: Sistem dapat difilter berdasarkan angkatan aktif untuk fokus pada mahasiswa tertentu.
 
-5. **Penguji Eksternal**: Login menggunakan token yang dikirim melalui undangan, tidak perlu akun permanen.
+5. **Dosen Eksternal**: Secara fungsional **sama seperti dosen internal** — dapat ditugaskan sebagai **pembimbing maupun penguji** dan sama-sama memberi nilai. Dapat masuk melalui **akun** (username & password = NIP, dapat diganti di `/profile`) **atau** **token undangan** dari Kombi. Hanya Kombi/Superadmin yang berhak menambahkan dan menetapkannya; dosen eksternal **tidak** muncul pada pengajuan judul mahasiswa.
 
 ---
 

@@ -378,13 +378,13 @@ $submitLabel = $isEdit ? 'Perbarui Jadwal' : 'Simpan Jadwal';
                     </div>
 
                     <hr>
-                    <h6 class="fw-semibold">Penguji Eksternal (Opsional)</h6>
-                    <p class="text-muted small">Isi data di bawah untuk menghasilkan token penguji eksternal ketika
-                        jadwal disimpan.</p>
+                    <h6 class="fw-semibold">Penguji Tamu (Dosen Eksternal)</h6>
+                    <p class="text-muted small">Opsional. Isi data di bawah untuk menghasilkan token akses bagi penguji
+                        tamu ketika jadwal disimpan. Dosen eksternal juga dapat login memakai akun (NIP).</p>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="external_name" class="form-label">Nama Penguji Eksternal</label>
+                            <label for="external_name" class="form-label">Nama Penguji Tamu</label>
                             <div class="input-group">
                                 <input type="text" class="form-control" id="external_name" name="external_name"
                                     value="<?= htmlspecialchars($event['external_name'] ?? '') ?>">
@@ -399,7 +399,7 @@ $submitLabel = $isEdit ? 'Perbarui Jadwal' : 'Simpan Jadwal';
                                 tersimpan.</div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="external_nip" class="form-label">NIP Penguji Eksternal</label>
+                            <label for="external_nip" class="form-label">NIP Penguji Tamu</label>
                             <input type="text" class="form-control" id="external_nip" name="external_nip"
                                 value="<?= htmlspecialchars($event['external_nip'] ?? '') ?>">
                         </div>
@@ -426,7 +426,7 @@ $submitLabel = $isEdit ? 'Perbarui Jadwal' : 'Simpan Jadwal';
                     <li class="mb-2"><strong>Tahap</strong> menentukan jenis evento (Sempro/Semhas/Ujian).</li>
                     <li class="mb-2">Satu mahasiswa hanya boleh memiliki <strong>satu jadwal</strong> per tahap.</li>
                     <li class="mb-2">Status dapat diubah ke <em>Selesai</em> atau <em>Batal</em> setelah kegiatan.</li>
-                    <li>Jika data penguji eksternal diisi, sistem otomatis membuat token akses untuk mereka.</li>
+                    <li>Jika data penguji tamu diisi, sistem otomatis membuat token akses untuk mereka.</li>
                 </ul>
             </div>
         </div>
@@ -438,7 +438,7 @@ $submitLabel = $isEdit ? 'Perbarui Jadwal' : 'Simpan Jadwal';
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="externalLecturerModalLabel"><i
-                                    class="fas fa-address-book me-2"></i>Pilih Dosen Eksternal</h5>
+                                    class="fas fa-address-book me-2"></i>Pilih Penguji Tamu (Dosen Eksternal)</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                         </div>
                         <div class="modal-body">
@@ -481,7 +481,7 @@ $submitLabel = $isEdit ? 'Perbarui Jadwal' : 'Simpan Jadwal';
         <?php if ($isEdit && !empty($externalTokens)): ?>
             <div class="card">
                 <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="fas fa-key me-2"></i> Token Penguji Eksternal</h5>
+                    <h5 class="mb-0"><i class="fas fa-key me-2"></i> Token Penguji Tamu</h5>
                 </div>
                 <div class="card-body">
                     <p class="small text-muted">Riwayat token yang pernah dibuat untuk jadwal ini.</p>

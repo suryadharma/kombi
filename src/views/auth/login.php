@@ -40,7 +40,7 @@
         </div>
         <div class="card border-info shadow-sm">
             <div class="card-header bg-info text-white">
-                <strong><i class="fas fa-user-shield me-2"></i>Penguji Eksternal?</strong>
+                <strong><i class="fas fa-user-shield me-2"></i>Penguji Tamu?</strong>
             </div>
             <div class="card-body text-center">
                 <p class="mb-2 text-muted">Gunakan <span class="font-monospace">NIP/NIDN + Token</span></p>

@@ -78,6 +78,9 @@ $error = $error ?? null;
                                     <span class="badge bg-secondary">
                                         <?= htmlspecialchars($roleLabels[$user['role']] ?? ucfirst(str_replace('_', ' ', $user['role']))) ?>
                                     </span>
+                                    <?php if (!empty($user['is_external'])): ?>
+                                        <span class="badge bg-warning text-dark">Dosen Eksternal</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <?= isset($user['created_at']) ? htmlspecialchars(date('d M Y H:i', strtotime($user['created_at']))) : '-' ?>

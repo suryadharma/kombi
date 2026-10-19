@@ -71,9 +71,10 @@
                 
                 <h6>Akun Login</h6>
                 <ul>
-                    <li>Untuk dosen internal, sistem akan membuat akun login otomatis</li>
+                    <li>Untuk dosen internal maupun eksternal, sistem akan membuat akun login otomatis</li>
                     <li>Username: NIP dosen</li>
                     <li>Password default: Sama dengan NIP</li>
+                    <li>Dosen eksternal juga dapat masuk lewat halaman penguji tamu memakai NIP + token undangan</li>
                 </ul>
             </div>
         </div>

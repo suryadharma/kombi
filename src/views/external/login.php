@@ -2,7 +2,7 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="text-center mb-0">Login Penguji Eksternal</h3>
+                <h3 class="text-center mb-0">Login Penguji Tamu</h3>
                 <a href="/login" class="btn btn-sm btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>

@@ -270,7 +270,7 @@ class EvaluationExportService
             case 'superadmin':
                 return 'Superadmin';
             case 'penguji_eksternal':
-                return 'Penguji Eksternal';
+                return 'Penguji Tamu';
             default:
                 return strtoupper($assignmentRole ?? $fallbackRole ?? '-');
         }

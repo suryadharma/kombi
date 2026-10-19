@@ -34,7 +34,7 @@ class LecturerController extends BaseController {
             $stmt->execute();
             $lecturers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Ensure internal lecturers have user accounts
+            // Ensure lecturers have login accounts (internal and external)
             foreach ($lecturers as &$lecturer) {
                 $isExternalFlag = isset($lecturer['is_external']) ? (int)$lecturer['is_external'] : 0;
                 if ($isExternalFlag === 0) {
@@ -49,6 +49,20 @@ class LecturerController extends BaseController {
                     } else {
                         UserRoleService::ensureUserRole($db, (int)$lecturer['user_id'], 'dosen_pembimbing');
                     }
+                } elseif (empty($lecturer['user_id'])) {
+                    // External lecturers now get an account (username/password = NIP) too.
+                    $userId = ExternalInviteService::ensureExternalUserAccount(
+                        $db,
+                        $lecturer['nip'],
+                        $lecturer['name'],
+                        $lecturer['email'] ?? null
+                    );
+                    $update = "UPDATE lecturers SET user_id = :user_id WHERE id = :id";
+                    $updateStmt = $db->prepare($update);
+                    $updateStmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+                    $updateStmt->bindParam(':id', $lecturer['id'], PDO::PARAM_INT);
+                    $updateStmt->execute();
+                    $lecturer['user_id'] = $userId;
                 }
             }
             unset($lecturer);
@@ -278,6 +292,8 @@ class LecturerController extends BaseController {
             $userId = null;
             if (!$isExternal) {
                 $userId = $this->ensureLecturerUser($db, $nip, $name, null, $email);
+            } else {
+                $userId = ExternalInviteService::ensureExternalUserAccount($db, $nip, $name, $email);
             }
             
             // Insert lecturer data
@@ -416,7 +432,7 @@ class LecturerController extends BaseController {
             if (!$isExternal) {
                 $userId = $this->ensureLecturerUser($db, $nip, $name, $userId, $email);
             } else {
-                $userId = null;
+                $userId = ExternalInviteService::ensureExternalUserAccount($db, $nip, $name, $email);
             }
 
             // Update lecturer data
@@ -659,7 +675,7 @@ class LecturerController extends BaseController {
                         if (!$isExternal) {
                             $userId = $this->ensureLecturerUser($db, $nip, $name, $userId, null);
                         } else {
-                            $userId = null;
+                            $userId = ExternalInviteService::ensureExternalUserAccount($db, $nip, $name);
                         }
                         
                         $updateQuery = "UPDATE lecturers SET user_id = :user_id, name = :name, prodi = :prodi, is_external = :is_external WHERE nip = :nip";
@@ -681,6 +697,8 @@ class LecturerController extends BaseController {
                         $userId = null;
                         if (!$isExternal) {
                             $userId = $this->ensureLecturerUser($db, $nip, $name, null, null);
+                        } else {
+                            $userId = ExternalInviteService::ensureExternalUserAccount($db, $nip, $name);
                         }
                         
                         $insertQuery = "INSERT INTO lecturers (user_id, nip, name, prodi, is_external) VALUES (:user_id, :nip, :name, :prodi, :is_external)";

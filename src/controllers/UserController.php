@@ -4,13 +4,16 @@ class UserController extends BaseController {
     
     private $db;
     
+    // Catatan: 'penguji_eksternal' sengaja TIDAK lagi terdaftar di sini.
+    // Dosen eksternal kini memakai role dosen (lihat lecturers.is_external),
+    // sedangkan penguji tamu diakses lewat token/undangan, bukan sebagai role akun.
+    // Dengan begitu role ini tidak bisa lagi dipilih manual di Kelola Pengguna.
     private $roleLabels = [
         'superadmin' => 'Superadmin',
         'kombi' => 'Kombi',
         'dosen' => 'Dosen',
         'dosen_pembimbing' => 'Dosen Pembimbing',
         'dosen_penguji' => 'Dosen Penguji',
-        'penguji_eksternal' => 'Penguji Eksternal',
         'mahasiswa' => 'Mahasiswa'
     ];
     
@@ -50,18 +53,20 @@ class UserController extends BaseController {
             $params = [];
 
             if ($search !== '') {
-                $conditions[] = "(username LIKE :search OR name LIKE :search)";
+                $conditions[] = "(u.username LIKE :search OR u.name LIKE :search)";
                 $params[':search'] = '%' . $search . '%';
             }
 
-            $query = "SELECT id, username, name, role, created_at, updated_at 
-                      FROM users";
+            $query = "SELECT u.id, u.username, u.name, u.role, u.created_at, u.updated_at,
+                             COALESCE(l.is_external, 0) AS is_external
+                      FROM users u
+                      LEFT JOIN lecturers l ON l.user_id = u.id";
 
             if (!empty($conditions)) {
                 $query .= " WHERE " . implode(' AND ', $conditions);
             }
 
-            $query .= " ORDER BY FIELD(role, 'superadmin','kombi','dosen','dosen_pembimbing','dosen_penguji','penguji_eksternal','mahasiswa'), name";
+            $query .= " ORDER BY FIELD(u.role, 'superadmin','kombi','dosen','dosen_pembimbing','dosen_penguji','penguji_eksternal','mahasiswa'), u.name";
 
             $stmt = $this->db->prepare($query);
             foreach ($params as $key => $value) {

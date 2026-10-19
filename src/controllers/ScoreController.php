@@ -1004,9 +1004,11 @@ class ScoreController extends BaseController
                          e.evaluator_id,
                          e.evaluator_role,
                          u.name AS evaluator_name,
+                         COALESCE(l.is_external, 0) AS evaluator_is_external,
                          la.assignment_roles
                   FROM evaluations e
                   JOIN users u ON e.evaluator_id = u.id
+                  LEFT JOIN lecturers l ON l.user_id = e.evaluator_id
                   LEFT JOIN (
                         SELECT student_id,
                                lecturer_id,
@@ -1063,7 +1065,12 @@ class ScoreController extends BaseController
             $evaluation['assignment_status'] = $assignmentStatus;
             $evaluation['assignment_status_label'] = $this->formatAssignmentStatusLabel($assignmentStatus);
 
-            $label = $this->formatEvaluatorLabel($evaluation['evaluator_role'], $stageAssignmentRole, 1, false);
+            $label = $this->formatEvaluatorLabel(
+                $evaluation['evaluator_role'],
+                $stageAssignmentRole,
+                1,
+                !empty($evaluation['evaluator_is_external'])
+            );
             if ($evaluation['assignment_status_label'] && $assignmentStatus !== 'current') {
                 $label .= ' (' . $evaluation['assignment_status_label'] . ')';
             }
@@ -1176,7 +1183,7 @@ class ScoreController extends BaseController
         $baseLabels = [
             'dosen_pembimbing' => 'Pembimbing',
             'dosen_penguji' => 'Penguji',
-            'penguji_eksternal' => 'Penguji Eksternal',
+            'penguji_eksternal' => 'Penguji Tamu',
             'kombi' => 'Kombi',
             'superadmin' => 'Admin'
         ];
@@ -1200,7 +1207,7 @@ class ScoreController extends BaseController
                     $label = $fallback[$sequence] ?? ('Penguji ' . $sequence);
                     break;
                 case 'penguji_eksternal':
-                    $label = 'Penguji Eksternal';
+                    $label = 'Penguji Tamu';
                     break;
                 default:
                     $label = $baseLabels[$role] ?? ucfirst(str_replace('_', ' ', strtolower($role)));
@@ -1211,7 +1218,7 @@ class ScoreController extends BaseController
             }
         }
 
-        if ($isExternal && stripos($label, 'eksternal') === false) {
+        if ($isExternal && stripos($label, 'eksternal') === false && stripos($label, 'tamu') === false) {
             $label .= ' (Eksternal)';
         }
 
@@ -1440,9 +1447,11 @@ class ScoreController extends BaseController
                         e.mode,
                         e.evaluator_id,
                         u.name as evaluator_name,
+                        COALESCE(l.is_external, 0) as evaluator_is_external,
                         a.role as assignment_role
                     FROM evaluations e
                     JOIN users u ON e.evaluator_id = u.id
+                    LEFT JOIN lecturers l ON l.user_id = e.evaluator_id
                     LEFT JOIN assignments a ON a.student_id = e.student_id AND a.lecturer_id = e.evaluator_id
                     WHERE e.student_id IN ({$placeholders})
                     AND e.final_score IS NOT NULL
@@ -1548,6 +1557,7 @@ class ScoreController extends BaseController
                             'evaluator_name' => $s['evaluator_name'],
                             'evaluator_role' => $s['evaluator_role'] ?? null,
                             'assignment_role' => $s['assignment_role'] ?? null,
+                            'evaluator_is_external' => (int)($s['evaluator_is_external'] ?? 0),
                             'score' => ScoreHelper::normalize($s['final_score'])
                         ];
                         if ($includeBypass) {

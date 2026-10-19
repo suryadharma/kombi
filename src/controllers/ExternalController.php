@@ -61,7 +61,7 @@ class ExternalController extends BaseController {
                     'invite_external_examiner',
                     'external_tokens',
                     (int)$db->lastInsertId(),
-                    "Undangan penguji eksternal atas nama {$name}"
+                    "Undangan penguji tamu atas nama {$name}"
                 );
 
                 $this->setFlash('success', "Token berhasil dibuat: {$invite['token']}");
@@ -127,7 +127,7 @@ class ExternalController extends BaseController {
             $externalUserId = ExternalInviteService::ensureExternalUser(
                 $db,
                 $record['nip'],
-                $record['examiner_name'] ?? ($record['nip'] ?? 'Penguji Eksternal')
+                $record['examiner_name'] ?? ($record['nip'] ?? 'Penguji Tamu')
             );
 
             $mapStage = array_flip([
@@ -150,7 +150,7 @@ class ExternalController extends BaseController {
                 'scheduled_at' => $record['scheduled_date'] . ' ' . $record['scheduled_time'],
                 'room' => $record['room'],
                 'nip' => $record['nip'],
-                'examiner_name' => $record['examiner_name'] ?? 'Penguji Eksternal',
+                'examiner_name' => $record['examiner_name'] ?? 'Penguji Tamu',
                 'user_id' => $externalUserId
             ];
 
@@ -181,10 +181,20 @@ class ExternalController extends BaseController {
         $externalUserId = $context['user_id'] ?? ExternalInviteService::ensureExternalUser(
             $db,
             $context['nip'],
-            $context['examiner_name'] ?? ($context['nip'] ?? 'Penguji Eksternal')
+            $context['examiner_name'] ?? ($context['nip'] ?? 'Penguji Tamu')
         );
         $_SESSION['external_examiner']['user_id'] = $externalUserId;
         $context['user_id'] = $externalUserId;
+
+        // Tentukan peran penilai berdasarkan penugasan resmi (bila ada) supaya
+        // nilai penguji eksternal yang sudah ditugaskan ikut terhitung di agregat
+        // (dosen_penguji / dosen_pembimbing). Penguji tamu tanpa penugasan tetap
+        // memakai peran 'penguji_eksternal' dan tidak mengubah komposisi nilai.
+        $assignmentRoles = AssignmentRoleHelper::fetchRoles($db, (int) $context['student_id'], (int) $externalUserId);
+        $evaluatorRole = AssignmentRoleHelper::inferLecturerRole($assignmentRoles, (string) $context['stage'], 'penguji_eksternal') ?? 'penguji_eksternal';
+        if (!in_array($evaluatorRole, ['dosen_penguji', 'dosen_pembimbing', 'penguji_eksternal'], true)) {
+            $evaluatorRole = 'penguji_eksternal';
+        }
 
         $componentsStmt = $db->prepare("SELECT * FROM evaluation_components WHERE stage = :stage ORDER BY sort_order");
         $componentsStmt->bindParam(':stage', $context['stage']);
@@ -195,7 +205,7 @@ class ExternalController extends BaseController {
                              WHERE student_id = :student_id 
                                AND evaluator_id = :evaluator_id 
                                AND stage = :stage
-                               AND evaluator_role = 'penguji_eksternal'
+                             ORDER BY updated_at DESC, id DESC
                              LIMIT 1";
         $evaluationStmt = $db->prepare($evaluationQuery);
         $evaluationStmt->bindParam(':student_id', $context['student_id'], PDO::PARAM_INT);
@@ -239,7 +249,7 @@ class ExternalController extends BaseController {
                                 WHERE student_id = :student_id 
                                   AND evaluator_id = :evaluator_id 
                                   AND stage = :stage
-                                  AND evaluator_role = 'penguji_eksternal'
+                                ORDER BY updated_at DESC, id DESC
                                 LIMIT 1";
                 $checkStmt = $db->prepare($checkQuery);
                 $checkStmt->bindParam(':student_id', $context['student_id'], PDO::PARAM_INT);
@@ -283,6 +293,7 @@ class ExternalController extends BaseController {
                 if ($checkStmt->rowCount() > 0) {
                     $existingEvalId = (int) $checkStmt->fetchColumn();
                     $updateQuery = "UPDATE evaluations SET 
+                                        evaluator_role = :evaluator_role,
                                         mode = :mode,
                                         final_score = :final_score,
                                         total_score = :total_score,
@@ -291,6 +302,7 @@ class ExternalController extends BaseController {
                                         updated_at = CURRENT_TIMESTAMP
                                     WHERE id = :id";
                     $updateStmt = $db->prepare($updateQuery);
+                    $updateStmt->bindParam(':evaluator_role', $evaluatorRole);
                     $updateStmt->bindParam(':mode', $mode);
                     $updateStmt->bindParam(':final_score', $normalizedScore);
                     $updateStmt->bindParam(':total_score', $rawScoreRounded);
@@ -303,11 +315,12 @@ class ExternalController extends BaseController {
                                         student_id, evaluator_id, evaluator_role, stage,
                                         mode, final_score, total_score, notes, source
                                     ) VALUES (
-                                        :student_id, :evaluator_id, 'penguji_eksternal', :stage,
+                                        :student_id, :evaluator_id, :evaluator_role, :stage,
                                         :mode, :final_score, :total_score, :notes, 'manual'
                                     )";
                     $insertStmt = $db->prepare($insertQuery);
                     $insertStmt->bindParam(':student_id', $context['student_id'], PDO::PARAM_INT);
+                    $insertStmt->bindParam(':evaluator_role', $evaluatorRole);
                     $insertStmt->bindParam(':evaluator_id', $externalUserId, PDO::PARAM_INT);
                     $insertStmt->bindParam(':stage', $context['stage']);
                     $insertStmt->bindParam(':mode', $mode);

@@ -158,7 +158,7 @@ function formatEvaluatorLabel(assignmentRole, evaluatorRole) {
         case 'dosen_penguji': return 'Penguji';
         case 'kombi': return 'Kombi';
         case 'superadmin': return 'Superadmin';
-        case 'penguji_eksternal': return 'Penguji Eksternal';
+        case 'penguji_eksternal': return 'Penguji Tamu';
         default: return evaluatorRole || '-';
     }
 }

@@ -29,7 +29,7 @@ $normalizedScore = $totalWeight > 0 ? ($totalWeightedScore / $totalWeight) : 0;
     <div class="col-12">
         <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3">
             <div>
-                <h2 class="mb-1">Panel Penguji Eksternal</h2>
+                <h2 class="mb-1">Panel Penguji Tamu</h2>
                 <p class="mb-0 text-muted">Form penilaian menggunakan format yang sama dengan penguji internal.</p>
             </div>
             <div class="card shadow-sm mt-3 mt-md-0" style="min-width: 260px;">
@@ -40,9 +40,9 @@ $normalizedScore = $totalWeight > 0 ? ($totalWeightedScore / $totalWeight) : 0;
                             <i class="fas fa-user-tie fa-lg text-success"></i>
                         </div>
                         <div>
-                            <div class="fw-semibold"><?= htmlspecialchars($context['examiner_name'] ?? 'Penguji Eksternal') ?></div>
+                            <div class="fw-semibold"><?= htmlspecialchars($context['examiner_name'] ?? 'Penguji Tamu') ?></div>
                             <div class="text-muted small mb-1"><?= htmlspecialchars($context['nip'] ?? '-') ?></div>
-                            <span class="badge bg-secondary">Penguji Eksternal</span>
+                            <span class="badge bg-secondary">Penguji Tamu</span>
                         </div>
                     </div>
                 </div>

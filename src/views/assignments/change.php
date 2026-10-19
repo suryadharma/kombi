@@ -83,7 +83,7 @@ foreach ($currentAssignments as $assignment) {
                 <select class="form-select" id="new_lecturer_id" name="new_lecturer_id" required>
                     <option value="">-- Pilih Dosen --</option>
                     <?php foreach ($lecturers as $lecturer): ?>
-                        <option value="<?= $lecturer['id'] ?>"><?= htmlspecialchars($lecturer['name']) ?></option>
+                        <option value="<?= $lecturer['id'] ?>"><?= htmlspecialchars($lecturer['name']) ?><?= !empty($lecturer['is_external']) ? ' (Eksternal)' : '' ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

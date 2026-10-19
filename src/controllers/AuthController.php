@@ -217,7 +217,7 @@ class AuthController extends BaseController {
                 'dosen_pembimbing' => 'Dosen Pembimbing',
                 'dosen_penguji' => 'Dosen Penguji',
                 'mahasiswa' => 'Mahasiswa',
-            'penguji_eksternal' => 'Penguji Eksternal'
+            'penguji_eksternal' => 'Penguji Tamu'
         ];
         $label = $roleLabels[$requestedRole] ?? ucwords(str_replace('_', ' ', $requestedRole));
 

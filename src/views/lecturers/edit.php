@@ -72,6 +72,14 @@ $lecturer = isset($lecturer) ? $lecturer : [];
                     <li>Email: Email untuk menerima PDF hasil penilaian (opsional)</li>
                     <li>Dosen Eksternal: Centang jika dosen berasal dari luar institusi</li>
                 </ul>
+
+                <h6>Akun Login</h6>
+                <ul>
+                    <li>Dosen internal maupun eksternal otomatis dibuatkan akun</li>
+                    <li>Username: NIP dosen</li>
+                    <li>Password default: Sama dengan NIP</li>
+                    <li>Dosen eksternal juga dapat masuk lewat halaman penguji tamu memakai NIP + token undangan</li>
+                </ul>
             </div>
         </div>
     </div>

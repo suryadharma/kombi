@@ -82,7 +82,7 @@ include VIEW_PATH . '/components/filter_bar.php';
 
 <script>
 // Helper function to format evaluator label
-function formatEvaluatorLabel(assignmentRole, evaluatorRole) {
+function formatEvaluatorLabel(assignmentRole, evaluatorRole, isExternal) {
     const assignmentLabels = {
         'pembimbing_1': 'Pembimbing 1',
         'pembimbing_2': 'Pembimbing 2',
@@ -90,17 +90,23 @@ function formatEvaluatorLabel(assignmentRole, evaluatorRole) {
         'penguji_2': 'Penguji Anggota 1',
         'penguji_3': 'Penguji Anggota 2',
     };
+    let label;
     if (assignmentRole && assignmentLabels[assignmentRole]) {
-        return assignmentLabels[assignmentRole];
+        label = assignmentLabels[assignmentRole];
+    } else {
+        switch (evaluatorRole) {
+            case 'dosen_pembimbing': label = 'Pembimbing'; break;
+            case 'dosen_penguji': label = 'Penguji'; break;
+            case 'kombi': label = 'Kombi'; break;
+            case 'superadmin': label = 'Superadmin'; break;
+            case 'penguji_eksternal': label = 'Penguji Tamu'; break;
+            default: label = evaluatorRole || '-';
+        }
     }
-    switch (evaluatorRole) {
-        case 'dosen_pembimbing': return 'Pembimbing';
-        case 'dosen_penguji': return 'Penguji';
-        case 'kombi': return 'Kombi';
-        case 'superadmin': return 'Superadmin';
-        case 'penguji_eksternal': return 'Penguji Eksternal';
-        default: return evaluatorRole || '-';
+    if (isExternal && label.toLowerCase().indexOf('eksternal') === -1 && label.toLowerCase().indexOf('tamu') === -1) {
+        label += ' (Eksternal)';
     }
+    return label;
 }
 
 // Helper function to display scores
@@ -111,7 +117,7 @@ function displayScores(stageLabel, scores, stageKey, studentId) {
     
     let html = '';
     scores.forEach(function(score, index) {
-        const roleLabel = formatEvaluatorLabel(score.assignment_role, score.evaluator_role);
+        const roleLabel = formatEvaluatorLabel(score.assignment_role, score.evaluator_role, score.evaluator_is_external);
         const displayValue = score.score !== null && score.score !== undefined ? parseFloat(score.score).toFixed(2) : '-';
         const bypassBadge = score.is_bypass ? ' <span class="badge bg-warning text-dark"><i class="fas fa-forward"></i> Bypass</span>' : '';
         

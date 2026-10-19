@@ -112,7 +112,7 @@ flowchart TD
         BuatJadwal --> PilihTahap[Pilih Tahap: Sempro/Semhas/Ujian]
         PilihTahap --> SetTanggal[Set Tanggal & Waktu]
         SetTanggal --> SetRuang[Set Ruangan]
-        SetRuang --> UndangEksternal{Undang Penguji Eksternal?}
+        SetRuang --> UndangEksternal{Undang Penguji Tamu?}
         UndangEksternal -->|Ya| GenerateToken[Generate Token & Kirim Undangan]
         UndangEksternal -->|Tidak| SimpanJadwal
         GenerateToken --> SimpanJadwal[Simpan Jadwal]
@@ -311,7 +311,7 @@ flowchart TD
     InputNIP --> InputToken[Input Token dari Email]
     InputToken --> Login[Login]
     
-    Login --> Dashboard[Dashboard Penguji Eksternal]
+    Login --> Dashboard[Dashboard Penguji Tamu]
     
     Dashboard --> LihatJadwal[Lihat Jadwal Ujian]
     LihatJadwal --> CekWaktu{Cek Waktu}
@@ -508,7 +508,7 @@ sequenceDiagram
     participant K as Kombi
     participant DP as Dosen Pembimbing
     participant P as Dosen Penguji
-    participant E as Penguji Eksternal
+    participant E as Penguji Tamu
     participant S as Sistem
     
     M->>S: Login
@@ -537,7 +537,7 @@ sequenceDiagram
     S->>M: Notifikasi: Jadwal
     S->>DP: Notifikasi: Jadwal
     S->>P: Notifikasi: Jadwal
-    K->>E: Undang Penguji Eksternal
+    K->>E: Undang Penguji Tamu
     E->>S: Login dengan Token
     
     Note over M,P,E: Tahap 5: Hari H Seminar

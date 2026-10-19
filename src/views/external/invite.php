@@ -2,8 +2,8 @@
 
 <div class="row">
     <div class="col-12">
-        <h2>Undangan Penguji Eksternal</h2>
-        <p>Buat token atau akun sementara untuk penguji eksternal</p>
+        <h2>Undangan Penguji Tamu</h2>
+        <p>Buat token atau akun sementara untuk penguji tamu</p>
     </div>
 </div>
 
@@ -25,7 +25,7 @@
                 <form method="POST" action="/external/invite">
                     <?php echo Csrf::field(); ?>
                     <div class="mb-3">
-                        <label for="examiner_name" class="form-label">Nama Penguji Eksternal</label>
+                        <label for="examiner_name" class="form-label">Nama Penguji Tamu</label>
                         <input type="text" class="form-control" id="examiner_name" name="examiner_name" required>
                     </div>
                     
@@ -106,14 +106,14 @@
             </div>
             <div class="card-body">
                 <ul>
-                    <li>Isi data penguji eksternal dengan lengkap</li>
+                    <li>Isi data penguji tamu dengan lengkap</li>
                     <li>Pilih metode akses: token sementara atau akun sementara</li>
                     <li>Token akan kedaluwarsa otomatis setelah ujian</li>
                     <li>Akun sementara akan dinonaktifkan otomatis H+3</li>
                 </ul>
                 
                 <div class="alert alert-info">
-                    <strong>Info:</strong> Penguji eksternal akan menerima email dengan instruksi akses.
+                    <strong>Info:</strong> Penguji Tamu akan menerima email dengan instruksi akses.
                 </div>
             </div>
         </div>

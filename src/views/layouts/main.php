@@ -311,7 +311,7 @@
                                     'url' => '/events',
                                 ],
                                 [
-                                    'label' => 'Penguji Eksternal',
+                                    'label' => 'Penguji Tamu',
                                     'desc' => 'Undangan & token',
                                     'icon' => 'fas fa-id-badge',
                                     'url' => '/external/invite',
@@ -501,7 +501,7 @@
                                 'dosen_pembimbing' => 'Dosen',
                                 'dosen_penguji' => 'Dosen',
                                 'mahasiswa' => 'Mahasiswa',
-                                'penguji_eksternal' => 'Penguji Eksternal'
+                                'penguji_eksternal' => 'Penguji Tamu'
                             ];
                             $currentPath = $_SERVER['REQUEST_URI'] ?? '/dashboard';
                             ?>

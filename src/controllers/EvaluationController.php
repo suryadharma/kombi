@@ -792,7 +792,7 @@ class EvaluationController extends BaseController
             }
 
             // Get list of lecturers for dropdowns
-            $lecturersQuery = "SELECT id, name FROM users WHERE role LIKE 'dosen_%' OR role = 'penguji_eksternal' ORDER BY name";
+            $lecturersQuery = "SELECT id, name FROM users WHERE role LIKE 'dosen_%' ORDER BY name";
             $lecturersStmt = $db->prepare($lecturersQuery);
             $lecturersStmt->execute();
             $lecturers = $lecturersStmt->fetchAll(PDO::FETCH_ASSOC);

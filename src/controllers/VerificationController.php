@@ -173,7 +173,7 @@ class VerificationController extends BaseController
             case 'superadmin':
                 return 'Superadmin';
             case 'penguji_eksternal':
-                return 'Penguji Eksternal';
+                return 'Penguji Tamu';
             default:
                 return $fallbackRole ?? '-';
         }

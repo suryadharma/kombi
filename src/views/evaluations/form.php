@@ -150,7 +150,7 @@ $stageLabels = [
                                     echo 'Penguji';
                                     break;
                                 case 'penguji_eksternal':
-                                    echo 'Penguji Eksternal';
+                                    echo 'Penguji Tamu';
                                     break;
                                 default:
                                     echo ucfirst(str_replace('_', ' ', $roleLabel ?: 'Administrator'));

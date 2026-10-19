@@ -4,7 +4,8 @@ Aplikasi pengelolaan komisi bimbingan skripsi berbasis PHP native (MVC sederhana
 
 ## Fitur Utama
 
-- Role-based access control (Superadmin, Kombi, Dosen Pembimbing, Dosen Penguji, Mahasiswa, Penguji Eksternal)
+- Role-based access control (Superadmin, Kombi, Dosen Pembimbing, Dosen Penguji, Mahasiswa)
+- Dosen eksternal (bisa sebagai pembimbing maupun penguji) serta akses penguji tamu berbasis token
 - Pengelolaan pengajuan judul, penunjukan pembimbing & penguji
 - Penilaian Seminar Proposal, Seminar Hasil, Pra-Ujian, dan Ujian Skripsi
 - Blind grading (mahasiswa tidak melihat nilai)

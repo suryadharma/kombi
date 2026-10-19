@@ -12,7 +12,7 @@ $error = $error ?? null;
 <div class="row mb-3 align-items-center">
     <div class="col-lg-8 col-md-7">
         <h2 class="mb-1"><i class="fas fa-calendar-check"></i> Penjadwalan Seminar & Ujian</h2>
-        <p class="text-muted mb-0">Atur tanggal, waktu, dan ruang untuk setiap tahap skripsi mahasiswa. Undangan penguji eksternal dapat dibuat dari sini.</p>
+        <p class="text-muted mb-0">Atur tanggal, waktu, dan ruang untuk setiap tahap skripsi mahasiswa. Undangan penguji tamu dapat dibuat dari sini.</p>
     </div>
     <div class="col-lg-4 col-md-5 text-md-end mt-3 mt-md-0">
         <a href="/events/create" class="btn btn-primary">
@@ -213,7 +213,7 @@ $error = $error ?? null;
                                                         <th>Tahap</th>
                                                         <th>Jadwal</th>
                                                         <th>Ruang</th>
-                                                        <th>Penguji Eksternal</th>
+                                                        <th>Penguji Tamu</th>
                                                         <th>Status</th>
                                                         <th class="text-center">Aksi</th>
                                                     </tr>
@@ -275,7 +275,7 @@ $error = $error ?? null;
             </table>
         </div>
         <p class="text-muted small mt-3 mb-0">
-            Catatan: Token penguji eksternal dapat dibuat dari form penjadwalan saat membuat atau mengedit jadwal.
+            Catatan: Token penguji tamu dapat dibuat dari form penjadwalan saat membuat atau mengedit jadwal.
         </p>
     </div>
 </div>

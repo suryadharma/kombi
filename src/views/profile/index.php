@@ -10,7 +10,7 @@ $roleLabels = [
     'dosen_pembimbing' => 'Dosen Pembimbing',
     'dosen_penguji' => 'Dosen Penguji',
     'mahasiswa' => 'Mahasiswa',
-    'penguji_eksternal' => 'Penguji Eksternal'
+    'penguji_eksternal' => 'Penguji Tamu'
 ];
 
 $titleStatusBadge = [

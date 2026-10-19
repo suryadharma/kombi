@@ -67,13 +67,14 @@ NIP,Nama,Prodi,External
                     </li>
                     <li>Kolom yang wajib diisi: NIP, Nama, Prodi</li>
                     <li>Kolom External bersifat opsional, isi dengan "Ya"/"True"/"1" untuk dosen eksternal, atau kosongkan untuk dosen internal</li>
-                    <li>Untuk dosen internal, sistem akan secara otomatis membuat akun pengguna dengan:
+                    <li>Untuk dosen internal maupun eksternal, sistem akan secara otomatis membuat akun pengguna dengan:
                         <ul>
                             <li>Username: NIP dosen</li>
                             <li>Password default: Sama dengan NIP</li>
                         </ul>
                     </li>
-                    <li>Dosen harus mengganti password saat login pertama kali</li>
+                    <li>Dosen eksternal juga dapat masuk lewat halaman penguji tamu memakai NIP + token undangan</li>
+                    <li>Dosen disarankan mengganti password saat login pertama kali</li>
                     <li>Pilih file dan klik "Impor Data"</li>
                 </ol>
             </div>

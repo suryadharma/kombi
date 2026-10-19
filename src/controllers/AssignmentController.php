@@ -87,6 +87,10 @@ class AssignmentController extends BaseController
                     if ($lecturerId <= 0) {
                         continue;
                     }
+                    if (!isset($lecturerMap[$lecturerId])) {
+                        $errors[] = sprintf('Dosen untuk %s tidak valid atau tidak terdaftar.', $roleLabel);
+                        break;
+                    }
                     if (isset($usedLecturers[$lecturerId])) {
                         $lecturerName = $lecturerMap[$lecturerId] ?? ('ID #' . $lecturerId);
                         $errors[] = sprintf(
@@ -336,6 +340,8 @@ class AssignmentController extends BaseController
 
             if ($newLecturerId <= 0) {
                 $errors[] = 'Dosen baru harus dipilih.';
+            } elseif (!in_array($newLecturerId, array_map(static fn($row) => (int) $row['id'], $lecturers), true)) {
+                $errors[] = 'Dosen baru tidak valid atau tidak terdaftar.';
             }
 
             if (empty($errors) && $newLecturerId > 0) {
@@ -549,8 +555,10 @@ class AssignmentController extends BaseController
     {
         $roles = RoleHelper::lecturerRoles();
         $placeholders = implode(',', array_fill(0, count($roles), '?'));
+        // Dosen eksternal kini memakai role dosen biasa, jadi otomatis ikut
+        // terdaftar di sini; penanda is_external hanya untuk label "Eksternal".
         $query = "
-            SELECT u.id, u.name
+            SELECT u.id, u.name, u.username, COALESCE(l.is_external, 0) AS is_external
             FROM users u
             JOIN lecturers l ON u.id = l.user_id
             WHERE u.role IN ($placeholders)

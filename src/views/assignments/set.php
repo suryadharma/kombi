@@ -166,7 +166,7 @@ function toggleActiveAngkatanFilter() {
                                     }
                                 ?>
                                 <option value="<?= htmlspecialchars($lecturer['id']); ?>" <?= $selected; ?>>
-                                    <?= htmlspecialchars($lecturer['name']); ?> (<?= htmlspecialchars($lecturer['username']); ?>)
+                                    <?= htmlspecialchars($lecturer['name']); ?><?= !empty($lecturer['is_external']) ? ' (Eksternal)' : ''; ?> (<?= htmlspecialchars($lecturer['username'] ?? ''); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -185,7 +185,7 @@ function toggleActiveAngkatanFilter() {
                                     }
                                 ?>
                                 <option value="<?= htmlspecialchars($lecturer['id']); ?>" <?= $selected; ?>>
-                                    <?= htmlspecialchars($lecturer['name']); ?> (<?= htmlspecialchars($lecturer['username']); ?>)
+                                    <?= htmlspecialchars($lecturer['name']); ?><?= !empty($lecturer['is_external']) ? ' (Eksternal)' : ''; ?> (<?= htmlspecialchars($lecturer['username'] ?? ''); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -204,7 +204,7 @@ function toggleActiveAngkatanFilter() {
                                     }
                                 ?>
                                 <option value="<?= htmlspecialchars($lecturer['id']); ?>" <?= $selected; ?>>
-                                    <?= htmlspecialchars($lecturer['name']); ?> (<?= htmlspecialchars($lecturer['username']); ?>)
+                                    <?= htmlspecialchars($lecturer['name']); ?><?= !empty($lecturer['is_external']) ? ' (Eksternal)' : ''; ?> (<?= htmlspecialchars($lecturer['username'] ?? ''); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -223,7 +223,7 @@ function toggleActiveAngkatanFilter() {
                                     }
                                 ?>
                                 <option value="<?= htmlspecialchars($lecturer['id']); ?>" <?= $selected; ?>>
-                                    <?= htmlspecialchars($lecturer['name']); ?> (<?= htmlspecialchars($lecturer['username']); ?>)
+                                    <?= htmlspecialchars($lecturer['name']); ?><?= !empty($lecturer['is_external']) ? ' (Eksternal)' : ''; ?> (<?= htmlspecialchars($lecturer['username'] ?? ''); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -242,7 +242,7 @@ function toggleActiveAngkatanFilter() {
                                     }
                                 ?>
                                 <option value="<?= htmlspecialchars($lecturer['id']); ?>" <?= $selected; ?>>
-                                    <?= htmlspecialchars($lecturer['name']); ?> (<?= htmlspecialchars($lecturer['username']); ?>)
+                                    <?= htmlspecialchars($lecturer['name']); ?><?= !empty($lecturer['is_external']) ? ' (Eksternal)' : ''; ?> (<?= htmlspecialchars($lecturer['username'] ?? ''); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>

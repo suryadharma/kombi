@@ -112,7 +112,9 @@ class EventController extends BaseController
 
                 if (!empty($nipList)) {
                     $nipPlaceholders = implode(',', array_fill(0, count($nipList), '?'));
-                    $userQuery = "SELECT username, nip FROM users WHERE role = 'penguji_eksternal' AND nip IN ($nipPlaceholders)";
+                    // Dosen eksternal kini berole dosen biasa, jadi cukup cocokkan
+                    // lewat NIP (username akun eksternal = NIP).
+                    $userQuery = "SELECT username, nip FROM users WHERE nip IN ($nipPlaceholders)";
                     $userStmt = $db->prepare($userQuery);
                     $userStmt->execute($nipList);
                     $nipToUsername = [];
@@ -306,7 +308,7 @@ class EventController extends BaseController
                     $scheduledDate,
                     $scheduledTime
                 );
-                $tokenMessage = " Token eksternal: {$invite['token']}.";
+                $tokenMessage = " Token penguji tamu: {$invite['token']}.";
             }
 
             AuditLogger::log(
@@ -476,7 +478,7 @@ class EventController extends BaseController
                     $scheduledDate,
                     $scheduledTime
                 );
-                $tokenMessage = " Token eksternal: {$invite['token']}.";
+                $tokenMessage = " Token penguji tamu: {$invite['token']}.";
             }
 
             AuditLogger::log(

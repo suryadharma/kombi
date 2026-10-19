@@ -1369,7 +1369,16 @@ class TitleController extends BaseController {
     private function getLecturerOptions(PDO $db): array {
         $roles = RoleHelper::lecturerRoles();
         $placeholders = implode(',', array_fill(0, count($roles), '?'));
-        $query = "SELECT id, name, role FROM users WHERE role IN ($placeholders) ORDER BY name";
+        // Dosen eksternal hanya boleh ditetapkan oleh Kombi/Superadmin, jadi
+        // mereka tidak dimunculkan pada pengajuan judul mahasiswa.
+        $query = "SELECT u.id, u.name, u.role
+                  FROM users u
+                  WHERE u.role IN ($placeholders)
+                    AND NOT EXISTS (
+                        SELECT 1 FROM lecturers l
+                        WHERE l.user_id = u.id AND l.is_external = 1
+                    )
+                  ORDER BY u.name";
         $stmt = $db->prepare($query);
         foreach ($roles as $index => $role) {
             $stmt->bindValue($index + 1, $role);

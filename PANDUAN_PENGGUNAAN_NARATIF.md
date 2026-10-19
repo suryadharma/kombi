@@ -38,10 +38,11 @@ Dosen yang menguji mahasiswa saat seminar dan ujian:
 - Memberikan nilai setelah menguji mahasiswa
 - Memberikan catatan dan revisi
 
-### 5. **Penguji Eksternal**
-Penguji dari luar kampus yang diundang untuk menguji mahasiswa:
-- Login menggunakan kode khusus
-- Memberikan nilai ujian skripsi
+### 5. **Dosen Eksternal**
+Dosen dari luar prodi/kampus yang ditambahkan oleh Kombi dan dapat ditugaskan sebagai **pembimbing maupun penguji**:
+- Ditandai "Dosen Eksternal" pada data dosen; diberi akun otomatis (username & password = NIP)
+- Login dengan akun NIP, **atau** lewat token undangan
+- Memberikan nilai kepada mahasiswa seperti dosen internal
 
 ### 6. **Superadmin**
 Pengelola sistem:
@@ -121,7 +122,7 @@ Selama masa ini:
 Kombi akan:
 1. Menentukan tanggal dan waktu seminar
 2. Menentukan ruangan
-3. Mengundang semua penguji (kalau perlu, penguji eksternal juga)
+3. Mengundang semua penguji (kalau perlu, penguji tamu juga)
 
 **Hari H Seminar:**
 - Kamu datang ke ruangan pada waktu yang ditentukan
@@ -236,7 +237,7 @@ Lihat semua yang perlu diperhatikan:
 #### 4. **Membuat Jadwal**
 - Tentukan tanggal dan waktu seminar/ujian
 - Tentukan ruangan
-- Undang penguji eksternal jika perlu
+- Undang penguji tamu jika perlu
 
 #### 5. **Memverifikasi Nilai**
 - Pastikan semua dosen sudah mengisi nilai
@@ -281,26 +282,23 @@ Lihat mahasiswa-mahasiswa yang:
 
 ---
 
-### Untuk Penguji Eksternal: Apa yang Bisa Kamu Lakukan?
+### Untuk Dosen Eksternal: Apa yang Bisa Kamu Lakukan?
 
-#### 1. **Menerima Undangan**
-- Kombi akan mengirimkan undangan via email
-- Email berisi link login dan kode akses
+Dosen eksternal (dari luar prodi/kampus) dapat ditugaskan sebagai **pembimbing atau penguji** dan sama-sama memberi nilai.
 
-#### 2. **Login**
-- Buka link dari email
-- Masukkan NIP dan kode akses
-- Kamu akan masuk ke sistem
+#### 1. **Ditambahkan oleh Kombi**
+- Kombi memasukkan datamu sebagai dosen eksternal (ditandai "Dosen Eksternal")
+- Akun otomatis dibuat: username = NIP, password = NIP
 
-#### 3. **Melihat Jadwal**
-- Lihat kapan kamu harus menguji mahasiswa
+#### 2. **Login (pilih salah satu cara)**
+- **Lewat akun:** buka halaman login, masukkan NIP sebagai username dan password. Disarankan segera mengganti password.
+- **Lewat token:** buka halaman login penguji tamu, masukkan NIP + token undangan dari Kombi, lalu setujui NDA.
 
-#### 4. **Mengisi Nilai**
-- Setelah menguji, isi formulir penilaian
-- Berikan catatan dan revisi
-- Simpan nilai
+#### 3. **Mengisi Nilai**
+- Jika kamu ditugaskan (pembimbing/penguji), buka menu input nilai
+- Setelah menguji, isi formulir penilaian, berikan catatan, lalu simpan
 
-#### 5. **Logout**
+#### 4. **Logout**
 - Selesai, kamu bisa logout
 
 ---
@@ -364,8 +362,8 @@ Lihat mahasiswa-mahasiswa yang:
 ### Q: Saya lupa password, bagaimana cara menggantinya?
 **A:** Hubungi Superadmin atau Kombi untuk reset password. Setelah direset, segera ganti dengan password baru yang lebih aman.
 
-### Q: Apakah penguji eksternal perlu akun?
-**A:** Tidak perlu. Penguji eksternal login menggunakan token yang dikirim melalui undangan.
+### Q: Apakah dosen eksternal perlu akun?
+**A:** Dosen eksternal kini dibuatkan akun otomatis (username & password = NIP) sehingga bisa login seperti dosen internal dan ditugaskan sebagai pembimbing maupun penguji. Selain itu, penguji tamu tetap bisa masuk lewat token undangan dari Kombi.
 
 ### Q: Saya dosen, bisakah saya mengedit nilai yang sudah saya kirim?
 **A:** Bisa, selama nilai tersebut belum diverifikasi oleh Kombi. Setelah diverifikasi, nilai tidak bisa diubah lagi.
