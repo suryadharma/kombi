@@ -206,8 +206,10 @@ class PdfExporter
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
+        header('Content-Type: application/pdf');
         $downloadName = self::buildPdfFilename($student, $stageCode, $evaluations);
-        $pdf->Output('D', $downloadName);
+        header('Content-Disposition: inline; filename="' . $downloadName . '"');
+        $pdf->Output('I');
     }
 
     public static function outputFinalThesisScore(array $student, array $scoreData, ?array $chairperson = null): void
@@ -358,7 +360,9 @@ class PdfExporter
 
         // Output
         $downloadName = 'nilai-akhir-' . preg_replace('/[^a-z0-9]/i', '-', $student['nim']) . '.pdf';
-        $pdf->Output('D', $downloadName);
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $downloadName . '"');
+        $pdf->Output('I');
     }
 
     private static function renderStageIntro(KombiPDF $pdf, array $stage, array $student, ?array $schedule): void
@@ -503,7 +507,7 @@ class PdfExporter
 
     private static function buildPdfFilename(array $student, string $stageCode, array $evaluations): string
     {
-        $segments = ['nilai'];
+        $segments = [];
         $nim = isset($student['nim']) ? (string) $student['nim'] : '';
         if ($nim !== '') {
             $segments[] = self::sanitizeFilenameSegment($nim);
@@ -522,6 +526,7 @@ class PdfExporter
             }
         }
 
+        $segments[] = 'nilai';
         $segments = array_values(array_filter($segments, fn($part) => $part !== ''));
         $filename = implode('-', $segments);
         if ($filename === '') {
