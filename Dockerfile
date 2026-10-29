@@ -1,5 +1,5 @@
 
-FROM webdevops/php-apache:8.2
+FROM webdevops/php-apache:8.4
 
 RUN apt-get update     && apt-get install -y --no-install-recommends smbclient     && rm -rf /var/lib/apt/lists/*
 

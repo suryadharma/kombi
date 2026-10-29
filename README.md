@@ -14,7 +14,7 @@ Aplikasi pengelolaan komisi bimbingan skripsi berbasis PHP native (MVC sederhana
 
 ## Tech Stack
 
-- PHP 8.2 + PDO MySQL
+- PHP 8.4 + PDO MySQL
 - MariaDB/MySQL
 - Apache HTTP Server
 - Bootstrap 5, DataTables
@@ -44,7 +44,7 @@ Akses aplikasi di `http://localhost:9201` (default).
 2. Salin `.env.example` ke `.env` dan sesuaikan konfigurasi database
 3. Import database (`schema.sql`, `seed.sql`, atau `kbs_db.sql`)
 4. Konfigurasi web server ke direktori `src/` atau root project sesuai kebutuhan
-5. Pastikan PHP 8.2 dengan ekstensi `pdo_mysql` tersedia
+5. Pastikan PHP 8.4 dengan ekstensi `pdo_mysql` tersedia
 
 ## Konfigurasi
 

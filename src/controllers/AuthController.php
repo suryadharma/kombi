@@ -337,7 +337,7 @@ class AuthController extends BaseController {
         return $result;
     }
     
-    private function getDaysUntil(string $eventDate, string $eventTime = null): string {
+    private function getDaysUntil(string $eventDate, ?string $eventTime = null): string {
         $timezone = new DateTimeZone('Asia/Jakarta');
         
         // Create the event datetime - combine date and time if provided
